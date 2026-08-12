@@ -12,10 +12,10 @@
     "dev:electron": "wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .",
     "build": "vite build",
     "dist": "npm run dist:win:x64",
-    "dist:win:x64": "npm run build && electron-builder --win nsis portable --x64",
-    "dist:linux:x64": "npm run build && electron-builder --linux AppImage deb --x64",
-    "dist:dir": "npm run build && electron-builder --win --x64 --dir",
-    "check": "node --check electron/main.cjs && node --check electron/preload.cjs && node --check electron/services/commands.cjs && node --check electron/services/system.cjs && node --check electron/services/starcitizen.cjs && node --check electron/services/fleetyards.cjs && node --check electron/services/marketplace.cjs && node --check electron/services/optimizer.cjs && node --check electron/services/hotkeys.cjs && node --check electron/services/voice.cjs && node --check electron/services/assistant.cjs"
+    "dist:win:x64": "npm run build && electron-builder --win nsis portable --x64 --publish never",
+    "dist:linux:x64": "npm run build && electron-builder --linux AppImage deb --x64 --publish never",
+    "dist:dir": "npm run build && electron-builder --win --x64 --dir --publish never",
+    "check": "node --check electron/main.cjs && node --check electron/preload.cjs && node --check electron/services/commands.cjs && node --check electron/services/ollama.cjs && node --check electron/services/system.cjs && node --check electron/services/starcitizen.cjs && node --check electron/services/fleetyards.cjs && node --check electron/services/marketplace.cjs && node --check electron/services/optimizer.cjs && node --check electron/services/hotkeys.cjs && node --check electron/services/voice.cjs && node --check electron/services/assistant.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
