@@ -56,7 +56,11 @@ $src=@'\nusing System; using System.Runtime.InteropServices; public static class
 Add-Type $src -ErrorAction SilentlyContinue;
 $keys=@(${arr});
 foreach($k in $keys){[NVK]::keybd_event([byte]$k,0,0,[UIntPtr]::Zero)};
-if(${wheel} -ne 0){[NVK]::mouse_event(0x0800,0,0,[uint32]([int32]${wheel}),[UIntPtr]::Zero)}
+if(${wheel} -ne 0){
+  $wheelBytes=[BitConverter]::GetBytes([int32]${wheel});
+  $wheelData=[BitConverter]::ToUInt32($wheelBytes,0);
+  [NVK]::mouse_event(0x0800,0,0,$wheelData,[UIntPtr]::Zero)
+}
 elseif(${mouseDown} -ne 0){[NVK]::mouse_event([uint32]${mouseDown},0,0,[uint32]${mouseData},[UIntPtr]::Zero)};
 Start-Sleep -Milliseconds ${holdMs};
 if(${mouseUp} -ne 0){[NVK]::mouse_event([uint32]${mouseUp},0,0,[uint32]${mouseData},[UIntPtr]::Zero)};
