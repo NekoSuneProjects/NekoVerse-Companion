@@ -85,6 +85,14 @@ async function loadSettings() {
   return settings;
 }
 
+function publishVoiceStatus(status) {
+  if (win && !win.isDestroyed()) win.webContents.send('voice:status', status);
+}
+
+function startVoiceListener() {
+  return voice.start(runRecognized, settings.language, publishVoiceStatus);
+}
+
 function saveSettings(next) {
   const wasListening = voice.isRunning();
   const previousLanguage = settings?.language;
@@ -97,7 +105,7 @@ function saveSettings(next) {
   storage.setJson('settings', settings);
   if (wasListening && previousLanguage !== settings.language) {
     voice.stop();
-    voice.start(runRecognized, settings.language);
+    startVoiceListener();
   }
   return settings;
 }
@@ -132,15 +140,56 @@ function startUpdatePolling() {
   updateTimer.unref?.();
 }
 
-function findWakeWord(text) {
-  const lower = String(text || '').toLowerCase();
-  return (settings.wakeWords || ['jarvis']).find(w => lower.includes(String(w).toLowerCase())) || null;
+function speechToken(value) {
+  return String(value || '').toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}]+/gu, '');
 }
-function stripWakeWord(text, wake) {
-  if (!wake) return String(text || '').trim();
-  const escapedWake = String(wake).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+function levenshtein(a, b) {
+  a = speechToken(a); b = speechToken(b);
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const prev = Array.from({length:b.length+1}, (_,i)=>i);
+  for (let i=1;i<=a.length;i++) {
+    let diag = prev[0];
+    prev[0] = i;
+    for (let j=1;j<=b.length;j++) {
+      const old = prev[j];
+      prev[j] = Math.min(prev[j]+1, prev[j-1]+1, diag + (a[i-1] === b[j-1] ? 0 : 1));
+      diag = old;
+    }
+  }
+  return prev[b.length];
+}
+
+function findWakeWord(text) {
+  const original = String(text || '');
+  const lower = original.toLowerCase();
+  const wakeWords = settings.wakeWords || ['jarvis'];
+  const exact = wakeWords.find(w => lower.includes(String(w).toLowerCase()));
+  if (exact) return { configured:exact, heard:exact, fuzzy:false };
+
+  // System.Speech commonly varies a single vowel/consonant in proper names.
+  // Allow only a one-character difference for wake names of 5+ characters.
+  const heardTokens = original.split(/[\s,.:;!?\-]+/).map(speechToken).filter(Boolean);
+  for (const configured of wakeWords) {
+    const target = speechToken(configured);
+    if (target.length < 5) continue;
+    for (const heard of heardTokens) {
+      if (Math.abs(heard.length - target.length) > 1) continue;
+      if (levenshtein(heard, target) <= 1) return { configured, heard, fuzzy:true };
+    }
+  }
+  return null;
+}
+
+function stripWakeWord(text, wakeMatch) {
+  if (!wakeMatch) return String(text || '').trim();
+  const heard = wakeMatch.heard || wakeMatch.configured;
+  const escapedWake = String(heard).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return String(text || '').replace(new RegExp(escapedWake,'i'),'').replace(/^[,\s:;-]+/, '').trim();
 }
+
 function stopCurrentSpeech(reason = 'Speech stopped.') {
   voiceCancelEpoch += 1;
   wakeActiveUntil = 0;
@@ -151,35 +200,37 @@ function stopCurrentSpeech(reason = 'Speech stopped.') {
   return result;
 }
 
-async function runRecognized(text) {
+async function runRecognized(text, recognition = {}) {
   if (!win || win.isDestroyed()) return;
-  const wake = findWakeWord(text);
-  const cleaned = stripWakeWord(text, wake);
+  const wakeMatch = findWakeWord(text);
+  const cleaned = stripWakeWord(text, wakeMatch);
   const now = Date.now();
   const wakeWasActive = now < wakeActiveUntil;
 
   if (STOP_SPEAKING_RE.test(cleaned || text)) {
-    if (wake) await voice.playWakeSound();
+    if (wakeMatch) await voice.playWakeSound();
     stopCurrentSpeech('Speech stopped.');
     return;
   }
 
-  if (wake) {
+  if (wakeMatch) {
     wakeActiveUntil = now + WAKE_WINDOW_MS;
     await voice.playWakeSound();
-    if (!cleaned) {
-      win.webContents.send('voice:wake', { wakeWord:wake, activeUntil:wakeActiveUntil });
-      return;
-    }
+    win.webContents.send('voice:wake', {
+      wakeWord:wakeMatch.configured,
+      heard:wakeMatch.heard,
+      fuzzy:wakeMatch.fuzzy,
+      confidence:recognition?.confidence ?? null,
+      activeUntil:wakeActiveUntil
+    });
+    if (!cleaned) return;
   }
 
   if (voiceCommandBusy) return;
   const commandText = cleaned || String(text || '').trim();
   const detectedIntent = assistant.detectIntent(commandText);
-  const activated = Boolean(wake || wakeWasActive);
+  const activated = Boolean(wakeMatch || wakeWasActive);
 
-  // Default v0.1.1 behaviour: wake word applies to commands and questions.
-  // Users can disable strict mode in Settings if they prefer direct commands.
   if (settings.requireWakeWord && !activated) return;
   if (!settings.requireWakeWord && detectedIntent === 'chat' && !activated) return;
   if (detectedIntent === lastVoiceIntent && Date.now() - lastVoiceFinishedAt < VOICE_DUPLICATE_COOLDOWN_MS) return;
@@ -192,9 +243,9 @@ async function runRecognized(text) {
     if (reply.intent && settings.commands?.[reply.intent]) actionResult = await hotkeys.runCommand(reply.intent, settings);
     if (requestEpoch !== voiceCancelEpoch) return;
     lastVoiceIntent = reply.intent || detectedIntent;
-    win.webContents.send('voice:recognized', { recognized:text, command:commandText, reply, actionResult });
+    win.webContents.send('voice:recognized', { recognized:text, command:commandText, confidence:recognition?.confidence ?? null, reply, actionResult });
     if (settings.speakReplies && requestEpoch === voiceCancelEpoch) {
-      await voice.speak(actionResult?.error ? `${reply.text} ${actionResult.error}` : reply.text);
+      await voice.speak(actionResult?.error ? `${reply.text} ${actionResult.error}` : reply.text, settings.language);
     }
   } finally {
     lastVoiceFinishedAt = Date.now();
@@ -218,7 +269,7 @@ app.on('window-all-closed', () => {
 ipcMain.handle('app:bootstrap', async () => {
   const [status, news, opt, update] = await Promise.all([getStatus(), getNews(), optimizer.analyze(settings.customInstallPath), getUpdateStatus(false)]);
   lastOptimizer = opt;
-  return { status, news, optimizer:opt, settings, creator:assistant.CREATOR, appVersion:app.getVersion(), update, storagePath:storage.getPath() };
+  return { status, news, optimizer:opt, settings, creator:assistant.CREATOR, appVersion:app.getVersion(), update, storagePath:storage.getPath(), voiceStatus:voice.getStatus() };
 });
 ipcMain.handle('sc:status', () => getStatus());
 ipcMain.handle('sc:news', () => getNews());
@@ -228,10 +279,11 @@ ipcMain.handle('wiki:search', (_e,q) => wiki.searchVerse(q));
 ipcMain.handle('optimizer:analyze', async () => { lastOptimizer = await optimizer.analyze(settings.customInstallPath); return lastOptimizer; });
 ipcMain.handle('optimizer:apply', (_e,p) => optimizer.apply(p));
 ipcMain.handle('optimizer:restore', () => optimizer.restore());
-ipcMain.handle('voice:speak', (_e,text) => voice.speak(text));
+ipcMain.handle('voice:speak', (_e,text) => voice.speak(text, settings.language));
 ipcMain.handle('voice:stop-speaking', () => stopCurrentSpeech('Speech stopped.'));
-ipcMain.handle('voice:start', () => voice.start(runRecognized, settings.language));
+ipcMain.handle('voice:start', () => startVoiceListener());
 ipcMain.handle('voice:stop', () => voice.stop());
+ipcMain.handle('voice:status', () => voice.getStatus());
 ipcMain.handle('hotkey:run', (_e,cmd) => hotkeys.runCommand(cmd, settings));
 ipcMain.handle('assistant:ask', async (_e,msg) => {
   if (assistantRequestBusy) return { busy:true, reply:{ intent:'chat', text:'One request is already being processed. Please wait for it to finish.' }, actionResult:null };
@@ -241,7 +293,7 @@ ipcMain.handle('assistant:ask', async (_e,msg) => {
     const reply = await assistant.ask(msg, settings, { optimizer:lastOptimizer?.recommended });
     let actionResult = null;
     if (reply.intent && settings.commands?.[reply.intent]) actionResult = await hotkeys.runCommand(reply.intent, settings);
-    if (settings.speakReplies && requestEpoch === voiceCancelEpoch) await voice.speak(actionResult?.error ? `${reply.text} ${actionResult.error}` : reply.text);
+    if (settings.speakReplies && requestEpoch === voiceCancelEpoch) await voice.speak(actionResult?.error ? `${reply.text} ${actionResult.error}` : reply.text, settings.language);
     return { reply, actionResult };
   } finally { assistantRequestBusy = false; }
 });
