@@ -6,6 +6,7 @@ const { searchModels } = require('./services/fleetyards.cjs');
 const { searchMarket } = require('./services/marketplace.cjs');
 const { buildDefaultCommands } = require('./services/commands.cjs');
 const { buildCombatExtraCommands } = require('./services/combat-extra.cjs');
+const { buildCurrentDefaultOverrides } = require('./services/current-defaults.cjs');
 const optimizer = require('./services/optimizer.cjs');
 const hotkeys = require('./services/hotkeys.cjs');
 const voice = require('./services/voice.cjs');
@@ -43,7 +44,11 @@ const defaultSettings = {
   requireWakeWord: true,
   speakReplies: true,
   customInstallPath: '',
-  commands: { ...buildDefaultCommands(), ...buildCombatExtraCommands() },
+  commands: {
+    ...buildDefaultCommands(),
+    ...buildCombatExtraCommands(),
+    ...buildCurrentDefaultOverrides()
+  },
   ollama: {
     baseUrl: ollama.DEFAULT_BASE_URL,
     model: ollama.DEFAULT_MODEL
