@@ -64,8 +64,10 @@ function locateGraphicsFile() {
 }
 
 async function analyze(customPath) {
-  const hardware = await getHardware();
-  const install = findStarCitizenInstall(customPath);
+  const [hardware, install] = await Promise.all([
+    getHardware(),
+    findStarCitizenInstall(customPath)
+  ]);
   const graphics = locateGraphicsFile();
   return { hardware, install, graphics, recommended: recommendations(hardware) };
 }
