@@ -14,7 +14,8 @@ NekoVerse Companion brings the things you normally keep in separate tabs into on
 
 - **LIVE + PTU status** – refreshes the current Star Citizen channel state from RSI support data and keeps a conservative fallback for offline periods.
 - **News deck** – retrieves Comm-Link data through the Star Citizen Wiki API/RSI archive mirror and opens the original source externally.
-- **Neko voice assistant** – Windows speech recognition + TTS, wake words, typed chat, and an optional OpenAI-compatible endpoint for richer answers.
+- **Neko voice assistant** – Windows speech recognition + TTS, wake words and typed chat backed by the NekoSuneVR public Ollama endpoint.
+- **Native Ollama model picker** – defaults to `https://ollama.nekosunevr.co.uk` and `qwen2.5:3b`, scans `/api/tags`, displays model details/capabilities and lets the user change the assistant model from the app UI.
 - **Expanded voice command catalog** – flight/landing, docking, ship power/lights/access, NAV/quantum, cruise/movement, scanning, industrial modes, ground vehicles, camera/comms, helmet/inventory, medical and SOS/rescue actions.
 - **Tap + hold controls** – normal commands can tap a configured combination while actions such as Rescue Beacon can intentionally hold a key for a configured duration.
 - **FleetYards search** – searches the public FleetYards ship database and opens full model pages.
@@ -76,7 +77,7 @@ Outputs are written to `release/`.
 
 ## Configure voice commands
 
-Open **Settings → Utility hotkeys** and make the hotkeys match your own Star Citizen keybinds. Blank bindings are disabled. Star Citizen allows custom keybinding profiles, so NekoVerse treats its included bindings as editable starting points rather than immutable game controls.
+Open **Settings → Star Citizen voice / hotkey commands** and make the hotkeys match your own Star Citizen keybinds. Blank bindings are disabled. Star Citizen allows custom keybinding profiles, so NekoVerse treats its included bindings as editable starting points rather than immutable game controls.
 
 Default wake words are `neko`, `nekoverse`, and `computer`.
 
@@ -89,12 +90,24 @@ Examples:
 - **“Neko, remove my helmet.”**
 - **“Neko, call rescue.”**
 
-## Optional AI endpoint
+## Neko AI / Ollama
 
-The built-in intent engine works without a cloud model. In Settings you can optionally enable any compatible `/chat/completions` endpoint by supplying its base URL, model and optional API key. The system prompt always identifies the tool creator as **NekoSuneVR** and keeps automation inside the fair-play boundary.
+The assistant uses the **native Ollama API**, not OpenAI’s API and not an OpenAI compatibility layer.
+
+Default configuration:
+
+```text
+Server: https://ollama.nekosunevr.co.uk
+Model:  qwen2.5:3b
+```
+
+From **Settings → Neko AI — native Ollama**, click **Scan models**. NekoVerse calls `/api/tags` on the configured server and shows the available model names, parameter sizes, quantization levels, sizes and reported capabilities. Models that only expose embeddings remain visible but are disabled for assistant selection.
+
+Assistant conversations use `/api/chat` with streaming disabled so the desktop app receives a single JSON reply. No API key is required by the default NekoSuneVR endpoint.
 
 ## Data integrations
 
+- NekoSuneVR Ollama – native `/api/tags` model discovery and `/api/chat` assistant responses.
 - RSI support / Star Citizen website – current channel status and original source links.
 - Star Citizen Wiki API – community API over RSI archive/game data. Public projects should credit the service and follow its terms.
 - FleetYards – public ship database/API.
@@ -113,6 +126,8 @@ git push origin v0.1.0
 
 The release tag is used as the package version during CI, so a tag such as `v0.2.0` produces `0.2.0` filenames even if the checked-in package version has not yet been bumped.
 
+`electron-builder` is explicitly run with `--publish never`; GitHub Release publishing is handled only by the final Actions release job. This avoids duplicate uploads and token errors during packaging.
+
 ## Project layout
 
 ```text
@@ -123,6 +138,7 @@ NekoVerse-Companion/
 │  └─ services/
 │     ├─ commands.cjs
 │     ├─ assistant.cjs
+│     ├─ ollama.cjs
 │     ├─ hotkeys.cjs
 │     └─ ...
 ├─ src/
