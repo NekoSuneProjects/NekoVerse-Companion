@@ -72,10 +72,117 @@ const commandCatalog = {
     label: 'Wing / configuration toggle', category: 'Ship Configuration', combo: '',
     aliases: [/(deploy|retract|toggle) wings/i, /wing configuration/i, /ship configuration/i]
   },
+
+  // Master modes / combat operator modes
   quantum_mode: {
-    label: 'NAV / Quantum mode toggle', category: 'Navigation', combo: 'B',
-    aliases: [/quantum (drive|mode)/i, /nav mode/i, /(enter|leave|toggle) nav/i, /master mode/i]
+    label: 'SCM / NAV Master Mode toggle', category: 'Combat & Operator Modes', combo: 'B',
+    aliases: [/quantum (drive|mode)/i, /nav mode/i, /(enter|leave|toggle|switch) nav/i, /(enter|leave|toggle|switch) scm/i, /master mode/i, /combat mode/i, /switch to combat/i, /switch to navigation/i]
   },
+  operator_mode_cycle: {
+    label: 'Cycle Operator Mode (current default MMB)', category: 'Combat & Operator Modes', combo: 'MOUSE3',
+    aliases: [/cycle (the )?operator mode/i, /next operator mode/i, /cycle flight mode/i, /cycle combat mode/i, /next combat mode/i, /cycle weapon mode/i]
+  },
+  scm_gun_mode: {
+    label: 'SCM GUN mode (bind direct key if configured)', category: 'Combat & Operator Modes', combo: '',
+    aliases: [/(switch|go|change|set) (to )?(scm )?gun mode/i, /(enter|enable) (scm )?gun mode/i, /guns mode/i, /weapon gun mode/i]
+  },
+  scm_missile_mode: {
+    label: 'SCM Missile mode (bind direct key if configured)', category: 'Combat & Operator Modes', combo: '',
+    aliases: [/(switch|go|change|set) (to )?(scm )?missile mode/i, /(enter|enable) missile mode/i, /missiles mode/i, /missile operator mode/i]
+  },
+  scm_scan_mode: {
+    label: 'SCM Scan mode (bind direct key if configured)', category: 'Combat & Operator Modes', combo: '',
+    aliases: [/(switch|go|change|set) (to )?(scm )?scan mode/i, /(enter|enable) scan operator mode/i, /scm scanning/i]
+  },
+  gimbal_mode: {
+    label: 'Cycle weapon gimbal mode', category: 'Combat & Operator Modes', combo: '',
+    aliases: [/gimbal mode/i, /cycle gimbal/i, /toggle gimbal/i, /manual gimbal/i, /fixed guns/i]
+  },
+  precision_targeting: {
+    label: 'Precision targeting mode', category: 'Combat & Operator Modes', combo: '',
+    aliases: [/precision targeting/i, /precision target mode/i, /component targeting mode/i]
+  },
+
+  // Weapon groups / missiles — explicit user-triggered mode selection only.
+  weapon_group_1: {
+    label: 'Select weapon group 1', category: 'Weapons & Missiles', combo: '',
+    aliases: [/(select|switch to|use) weapon group (one|1)/i, /guns group (one|1)/i, /primary weapon group/i]
+  },
+  weapon_group_2: {
+    label: 'Select weapon group 2', category: 'Weapons & Missiles', combo: '',
+    aliases: [/(select|switch to|use) weapon group (two|2)/i, /guns group (two|2)/i, /secondary weapon group/i]
+  },
+  weapon_group_3: {
+    label: 'Select weapon group 3', category: 'Weapons & Missiles', combo: '',
+    aliases: [/(select|switch to|use) weapon group (three|3)/i, /guns group (three|3)/i, /third weapon group/i]
+  },
+  weapon_group_next: {
+    label: 'Next weapon group', category: 'Weapons & Missiles', combo: '',
+    aliases: [/next weapon group/i, /cycle weapon group/i, /next guns/i]
+  },
+  missile_type_next: {
+    label: 'Next missile type', category: 'Weapons & Missiles', combo: '',
+    aliases: [/next missile type/i, /cycle missile type/i, /change missiles/i, /switch missile type/i]
+  },
+  missile_type_previous: {
+    label: 'Previous missile type', category: 'Weapons & Missiles', combo: '',
+    aliases: [/previous missile type/i, /last missile type/i, /missile type back/i]
+  },
+  missile_count_up: {
+    label: 'Increase armed missile count', category: 'Weapons & Missiles', combo: '',
+    aliases: [/(increase|add|raise) missile count/i, /arm more missiles/i, /more missiles/i]
+  },
+  missile_count_down: {
+    label: 'Decrease armed missile count', category: 'Weapons & Missiles', combo: '',
+    aliases: [/(decrease|reduce|lower) missile count/i, /arm fewer missiles/i, /less missiles/i]
+  },
+
+  // Targeting / defensive utility; no aiming or firing automation.
+  target_under_reticle: {
+    label: 'Target under reticle', category: 'Targeting & Defense', combo: '',
+    aliases: [/target under (the )?reticle/i, /target what i am looking at/i, /select target ahead/i]
+  },
+  target_nearest_hostile: {
+    label: 'Target nearest hostile', category: 'Targeting & Defense', combo: '',
+    aliases: [/target nearest hostile/i, /nearest enemy target/i, /target closest enemy/i]
+  },
+  target_next_hostile: {
+    label: 'Cycle next hostile target', category: 'Targeting & Defense', combo: '',
+    aliases: [/next hostile target/i, /next enemy/i, /cycle hostile target/i]
+  },
+  target_previous_hostile: {
+    label: 'Cycle previous hostile target', category: 'Targeting & Defense', combo: '',
+    aliases: [/previous hostile target/i, /previous enemy/i, /last hostile target/i]
+  },
+  clear_target: {
+    label: 'Clear target', category: 'Targeting & Defense', combo: '',
+    aliases: [/clear target/i, /deselect target/i, /drop target/i]
+  },
+  countermeasure_decoy: {
+    label: 'Launch decoy countermeasure', category: 'Targeting & Defense', combo: '',
+    aliases: [/(launch|deploy|drop) decoy/i, /countermeasure decoy/i, /flare/i]
+  },
+  countermeasure_noise: {
+    label: 'Launch noise countermeasure', category: 'Targeting & Defense', combo: '',
+    aliases: [/(launch|deploy|drop) noise/i, /countermeasure noise/i, /noise field/i]
+  },
+  capacitor_weapons: {
+    label: 'Power bias to weapons', category: 'Power Management', combo: '',
+    aliases: [/power to weapons/i, /weapons capacitor/i, /bias weapons/i]
+  },
+  capacitor_shields: {
+    label: 'Power bias to shields', category: 'Power Management', combo: '',
+    aliases: [/power to shields/i, /shield capacitor/i, /bias shields/i]
+  },
+  capacitor_engines: {
+    label: 'Power bias to engines', category: 'Power Management', combo: '',
+    aliases: [/power to engines/i, /engine capacitor/i, /bias engines/i]
+  },
+  capacitor_reset: {
+    label: 'Reset power distribution', category: 'Power Management', combo: '',
+    aliases: [/reset power distribution/i, /balance power/i, /reset capacitors/i]
+  },
+
   quantum_engage: {
     label: 'Quantum engage (bind your preferred key)', category: 'Navigation', combo: '',
     aliases: [/engage quantum/i, /quantum jump/i, /start quantum/i, /jump now/i]
