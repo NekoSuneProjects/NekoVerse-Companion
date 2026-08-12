@@ -16,17 +16,56 @@ const localizedAliases = {
   ramp: [/abrir (la )?rampa|cerrar (la )?rampa/i,/rampe (auf|zu)|rampe [oö]ffnen|rampe schlie[sß]en/i,/otw[oó]rz ramp[eę]|zamknij ramp[eę]/i,/открой рампу|закрой рампу/i,/ouvre la rampe|ferme la rampe/i,/apri la rampa|chiudi la rampa/i,/abrir rampa|fechar rampa/i],
   quantum_mode: [/modo cu[aá]ntico|modo nav/i,/quantenmodus|nav modus/i,/tryb kwantowy|tryb nav/i,/квантовый режим|режим навигации/i,/mode quantique|mode nav/i,/modalit[aà] quantica|modalit[aà] nav/i,/modo qu[aâ]ntico|modo nav/i],
   quantum_engage: [/inicia(r)? salto cu[aá]ntico/i,/quantensprung starten/i,/rozpocznij skok kwantowy/i,/начни квантовый прыжок/i,/lance le saut quantique/i,/avvia salto quantico/i,/iniciar salto qu[aâ]ntico/i],
-  starmap: [/abrir mapa estelar/i,/sternkarte [oö]ffnen/i,/otw[oó]rz map[eę] gwiazd/i,/открой звездную карту/i,/ouvre la carte stellaire/i,/apri mappa stellare/i,/abrir mapa estelar/i],
+
+  // mobiGlas / UI
+  starmap: [
+    /abrir (el )?(mapa|mapa estelar)/i,
+    /(karte|sternkarte) [oö]ffnen/i,
+    /otw[oó]rz map[eę]( gwiazd)?/i,
+    /открой (карту|звездную карту)/i,
+    /ouvre (la )?(carte|carte stellaire)/i,
+    /apri (la )?(mappa|mappa stellare)/i,
+    /abrir (o )?(mapa|mapa estelar)/i
+  ],
   mobiglas: [/abrir mobiglas/i,/mobiglas [oö]ffnen/i,/otw[oó]rz mobiglas/i,/открой mobiglas/i,/ouvre mobiglas/i,/apri mobiglas/i],
+  comms: [
+    /abrir comunicaciones|abrir contactos/i,
+    /kommunikation [oö]ffnen|kontakte [oö]ffnen/i,
+    /otw[oó]rz komunikacj[eę]|otw[oó]rz kontakty/i,
+    /открой связь|открой контакты/i,
+    /ouvre les communications|ouvre les contacts/i,
+    /apri comunicazioni|apri contatti/i,
+    /abrir comunica[cç][oõ]es|abrir contactos/i
+  ],
+  contracts: [
+    /abrir contratos|abrir misiones|abrir gestor de contratos/i,
+    /vertr[aä]ge [oö]ffnen|missionsmanager [oö]ffnen|auftr[aä]ge [oö]ffnen/i,
+    /otw[oó]rz kontrakty|otw[oó]rz misje/i,
+    /открой контракты|открой миссии/i,
+    /ouvre les contrats|ouvre les missions/i,
+    /apri contratti|apri missioni/i,
+    /abrir contratos|abrir miss[oõ]es/i
+  ],
+  inventory: [/abrir inventario/i,/inventar [oö]ffnen/i,/otw[oó]rz ekwipunek/i,/открой инвентарь/i,/ouvre l['’]?inventaire/i,/apri inventario/i,/abrir invent[aá]rio/i],
+  text_chat: [
+    /abrir chat|abrir chat de texto/i,
+    /chat [oö]ffnen|textchat [oö]ffnen/i,
+    /otw[oó]rz czat/i,
+    /открой чат/i,
+    /ouvre le chat/i,
+    /apri chat/i,
+    /abrir chat/i
+  ],
+  journal: [/abrir diario/i,/journal [oö]ffnen|logbuch [oö]ffnen/i,/otw[oó]rz dziennik/i,/открой журнал/i,/ouvre le journal/i,/apri diario/i,/abrir di[aá]rio/i],
+  vehicle_manager: [/abrir gestor de veh[ií]culos/i,/fahrzeugmanager [oö]ffnen/i,/otw[oó]rz mened[zż]er pojazd[oó]w/i,/открой менеджер транспорта/i,/ouvre le gestionnaire de v[eé]hicules/i,/apri gestione veicoli/i,/abrir gestor de ve[ií]culos/i],
+
   cruise_control: [/control de crucero/i,/tempomat|cruise control/i,/tempomat|kontrola pr[eę]dko[sś]ci/i,/круиз контроль/i,/r[eé]gulateur de vitesse/i,/controllo crociera/i,/controlo de cruzeiro/i],
   spacebrake: [/freno espacial/i,/raumbremse/i,/hamulec kosmiczny/i,/космический тормоз/i,/frein spatial/i,/freno spaziale/i,/trav[aã]o espacial/i],
   scan_mode: [/modo esc[aá]ner|modo de escaneo/i,/scanmodus/i,/tryb skanowania/i,/режим сканирования/i,/mode scanner/i,/modalit[aà] scansione/i,/modo de digitaliza[cç][aã]o/i],
   mining_mode: [/modo miner[ií]a/i,/bergbaumodus/i,/tryb g[oó]rniczy/i,/режим добычи/i,/mode minage/i,/modalit[aà] mineraria/i,/modo de minera[cç][aã]o/i],
   vehicle_lights: [/luces del veh[ií]culo/i,/fahrzeuglichter/i,/[sś]wiat[łl]a pojazdu/i,/фары машины|фары транспорта/i,/phares du v[eé]hicule/i,/fari del veicolo/i,/far[oó]is do ve[ií]culo/i],
-  comms: [/abrir comunicaciones|abrir contactos/i,/kommunikation [oö]ffnen|kontakte [oö]ffnen/i,/otw[oó]rz komunikacj[eę]|otw[oó]rz kontakty/i,/открой связь|открой контакты/i,/ouvre les communications|ouvre les contacts/i,/apri comunicazioni|apri contatti/i,/abrir comunica[cç][oõ]es|abrir contactos/i],
   helmet_toggle: [/quitar casco|poner casco/i,/helm abnehmen|helm aufsetzen/i,/zdejmij he[łl]m|za[łl][oó][zż] he[łl]m/i,/сними шлем|надень шлем/i,/retire le casque|mets le casque/i,/togli il casco|metti il casco/i,/tirar capacete|colocar capacete/i],
   personal_light: [/linterna|luz personal/i,/taschenlampe/i,/latarka/i,/фонарик/i,/lampe torche/i,/torcia/i,/lanterna/i],
-  inventory: [/abrir inventario/i,/inventar [oö]ffnen/i,/otw[oó]rz ekwipunek/i,/открой инвентарь/i,/ouvre l['’]?inventaire/i,/apri inventario/i,/abrir invent[aá]rio/i],
   rescue_beacon: [
     /pedir rescate|llamar rescate|enviar sos/i,
     /rettung rufen|notruf senden|sos senden/i,
