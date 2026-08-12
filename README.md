@@ -6,7 +6,7 @@
 
 > A modern Star Citizen desktop companion created by **NekoSuneVR**.
 
-NekoVerse Companion brings the things you normally keep in separate tabs into one green sci-fi command deck: current LIVE/PTU state, a news feed, FleetYards ship search, voice-triggered utility hotkeys, hardware-aware graphics recommendations, and a cautious third-party marketplace finder.
+NekoVerse Companion brings the things you normally keep in separate tabs into one green sci-fi command deck: current LIVE/PTU state, a news feed, FleetYards ship search, voice-triggered utility controls, hardware-aware graphics recommendations, and a cautious third-party marketplace finder.
 
 **Status:** early public MVP / v0.1.0
 
@@ -15,16 +15,19 @@ NekoVerse Companion brings the things you normally keep in separate tabs into on
 - **LIVE + PTU status** – refreshes the current Star Citizen channel state from RSI support data and keeps a conservative fallback for offline periods.
 - **News deck** – retrieves Comm-Link data through the Star Citizen Wiki API/RSI archive mirror and opens the original source externally.
 - **Neko voice assistant** – Windows speech recognition + TTS, wake words, typed chat, and an optional OpenAI-compatible endpoint for richer answers.
-- **Voice utility controls** – say phrases such as “Neko, request landing” and map them to your own one-shot Star Citizen hotkeys.
+- **Expanded voice command catalog** – flight/landing, docking, ship power/lights/access, NAV/quantum, cruise/movement, scanning, industrial modes, ground vehicles, camera/comms, helmet/inventory, medical and SOS/rescue actions.
+- **Tap + hold controls** – normal commands can tap a configured combination while actions such as Rescue Beacon can intentionally hold a key for a configured duration.
 - **FleetYards search** – searches the public FleetYards ship database and opens full model pages.
 - **Marketplace finder** – deep-searches public Star Hangar, Space Foundry and The Impound results with an LTI text filter and a prominent grey-market warning.
 - **Adaptive optimizer** – detects CPU/GPU/RAM/VRAM, recommends a performance tier and can safely change the local renderer setting with a timestamped backup.
 - **Modern UI** – React + Tailwind CSS, dark green HUD styling inspired by space-sim cockpit interfaces without shipping copyrighted Star Citizen artwork.
-- **Windows builds** – GitHub Actions builds NSIS + portable packages and publishes tag releases.
+- **Multi-platform releases** – GitHub Actions builds Windows x64 NSIS/portable EXEs plus Linux AMD64 AppImage/DEB packages, checksums them and publishes tagged releases with generated changelogs.
+
+See **`docs/COMMANDS.md`** for the full command catalog and configuration examples.
 
 ## Important fair-play boundary
 
-NekoVerse is a **companion/accessibility tool**, not a bot or cheat. Voice commands only trigger user-configured one-shot hotkeys. It does not implement combat automation, aim/recoil assistance, unattended loops, memory/process injection, packet manipulation or anti-cheat bypasses. See `docs/SECURITY.md`.
+NekoVerse is a **companion/accessibility tool**, not a bot or cheat. Voice commands only trigger explicit user-configured key actions. It does not implement combat automation, autonomous navigation, unattended gameplay loops, aim/recoil assistance, memory/process injection, packet manipulation or anti-cheat bypasses. See `docs/SECURITY.md`.
 
 ## Marketplace warning
 
@@ -45,7 +48,8 @@ The UI also explains that Vulkan can improve CPU-side performance on suitable ha
 ## Setup
 
 Requirements:
-- Windows 10/11 for hardware scan, System.Speech voice input/output and hotkey output.
+- Windows 10/11 for System.Speech voice input/output and Windows hotkey output.
+- Linux AMD64 can run the desktop UI/build, while Windows-only voice/hotkey features gracefully remain unavailable there.
 - Node.js 22 for development/building.
 - Star Citizen installed only if you want optimizer/hotkey features.
 
@@ -54,26 +58,36 @@ npm install
 npm run dev
 ```
 
-Build Windows installer + portable executable:
+Build Windows x64 installer + portable executable:
 
 ```bash
 npm run check
-npm run dist
+npm run dist:win:x64
+```
+
+Build Linux AMD64 AppImage + DEB:
+
+```bash
+npm run check
+npm run dist:linux:x64
 ```
 
 Outputs are written to `release/`.
 
 ## Configure voice commands
 
-Open **Settings → Utility hotkeys** and make the hotkeys match your own Star Citizen keybinds. Blank bindings are disabled. NekoVerse deliberately does not assume an ATC/landing hotkey because player mappings can differ.
+Open **Settings → Utility hotkeys** and make the hotkeys match your own Star Citizen keybinds. Blank bindings are disabled. Star Citizen allows custom keybinding profiles, so NekoVerse treats its included bindings as editable starting points rather than immutable game controls.
 
 Default wake words are `neko`, `nekoverse`, and `computer`.
 
-Example:
-- Configure **Request landing / ATC** to the single key/combo you use in-game.
-- Focus Star Citizen.
-- Start the voice listener.
-- Say: **“Neko, request landing.”**
+Examples:
+- **“Neko, request landing.”**
+- **“Neko, gear down.”**
+- **“Neko, headlights on.”**
+- **“Neko, open the ramp.”**
+- **“Neko, cruise control.”**
+- **“Neko, remove my helmet.”**
+- **“Neko, call rescue.”**
 
 ## Optional AI endpoint
 
@@ -90,14 +104,14 @@ NekoVerse caches no RSI login credentials and does not attempt to access private
 
 ## Repository / releases
 
-The included workflow builds on `windows-latest` for every push/PR and uploads build artifacts. Push a tag such as:
+The included workflow builds Windows x64 and Linux AMD64 on pushes/PRs and uploads workflow artifacts. Pushing a version tag also publishes a GitHub Release with generated changelog notes and SHA-256 checksums.
 
 ```bash
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-The workflow will create a GitHub Release from files in `release/`.
+The release tag is used as the package version during CI, so a tag such as `v0.2.0` produces `0.2.0` filenames even if the checked-in package version has not yet been bumped.
 
 ## Project layout
 
@@ -107,12 +121,19 @@ NekoVerse-Companion/
 │  ├─ main.cjs
 │  ├─ preload.cjs
 │  └─ services/
+│     ├─ commands.cjs
+│     ├─ assistant.cjs
+│     ├─ hotkeys.cjs
+│     └─ ...
 ├─ src/
 │  ├─ App.jsx
 │  ├─ index.css
 │  └─ lib/api.js
 ├─ docs/
-├─ .github/workflows/build.yml
+│  └─ COMMANDS.md
+├─ .github/
+│  ├─ workflows/build-release.yml
+│  └─ release.yml
 └─ package.json
 ```
 
