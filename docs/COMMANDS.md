@@ -4,23 +4,30 @@ NekoVerse maps spoken/typed phrases to **user-configured Star Citizen hotkeys**.
 
 ## How commands work
 
-1. Configure the matching keybind in **Settings → Utility hotkeys**.
+1. Configure the matching keybind in **Settings → Voice / hotkey commands**.
 2. Start the voice listener.
-3. Say a wake word such as `Neko` followed by the command.
-4. NekoVerse sends one configured keyboard action to Windows.
+3. Say the configured wake name. The default is `Jarvis`.
+4. After the confirmation tone, say the command. You can also say the wake name and command in one phrase.
+5. NekoVerse sends one configured keyboard action to Windows.
 
 Examples:
 
-- `Neko, request landing`
-- `Neko, gear down`
-- `Neko, headlights on`
-- `Neko, open the ramp`
-- `Neko, engage quantum`
-- `Neko, open the starmap`
-- `Neko, cruise control`
-- `Neko, remove my helmet`
-- `Neko, call rescue`
-- `Neko, send SOS`
+- `Jarvis, request landing`
+- `Jarvis, gear down`
+- `Jarvis, headlights on`
+- `Jarvis, open the ramp`
+- `Jarvis, engage quantum`
+- `Jarvis, open map`
+- `Jarvis, open comms`
+- `Jarvis, open contracts`
+- `Jarvis, open inventory`
+- `Jarvis, open chat`
+- `Jarvis, cruise control`
+- `Jarvis, remove my helmet`
+- `Jarvis, call rescue`
+- `Jarvis, send SOS`
+
+The wake name is customizable. Strict wake-word mode is enabled by default.
 
 ## Current command groups
 
@@ -55,8 +62,21 @@ Examples:
 
 - NAV / Quantum mode
 - Quantum engage
-- Starmap
-- mobiGlas
+
+### mobiGlas & UI
+
+NekoVerse v0.1.2 adds explicit AI/voice shortcuts for Star Citizen interface screens:
+
+- **mobiGlas** — default `F1`
+- **Starmap / Map** — default `F2`; accepts phrases such as `open map`, `show map`, and `open starmap`
+- **Comms / Contacts** — default `F11`
+- **Contracts Manager / Missions** — user-bindable; intentionally blank by default if no dependable direct key is available in the player's profile
+- **Personal Inventory** — default `I`
+- **Text Chat** — default `ENTER`
+- **Journal** — user-bindable
+- **Vehicle Manager / Vehicle Loadout** — user-bindable
+
+Commands with blank defaults still work as AI intents, but NekoVerse will tell the user that the command needs a hotkey assigned instead of sending a guessed key.
 
 ### Flight Movement
 
@@ -93,7 +113,6 @@ The companion does not continuously steer or drive a route by itself.
 - Third-person camera
 - Freelook
 - Head tracking
-- Comms / Contacts
 - VOIP toggle
 - Push-to-talk hold action
 
@@ -101,7 +120,6 @@ The companion does not continuously steer or drive a route by itself.
 
 - Helmet attach/remove
 - Personal flashlight
-- Inventory
 - Interaction mode
 - Holster/unholster
 
@@ -109,13 +127,12 @@ The companion does not continuously steer or drive a route by itself.
 
 - Medpen / medical item
 - SOS / Rescue Beacon
-- Contracts Manager
 
-The Rescue Beacon command is configured as a **hold action** because current Star Citizen medical guidance uses a held `M` input while incapacitated.
+The Rescue Beacon command is configured as a **hold action** because it may require a held input depending on the player's current Star Citizen binding/profile.
 
 ## Default bindings included
 
-NekoVerse ships only a small number of useful defaults where the binding is established/current enough to be helpful. Every entry can be changed or blanked in Settings.
+Every entry can be changed or blanked in Settings. NekoVerse avoids inventing direct keys for UI screens where a dependable direct binding is not available.
 
 - Request landing/takeoff: `LALT+N`
 - Request docking/undocking: `RALT+N`
@@ -125,18 +142,23 @@ NekoVerse ships only a small number of useful defaults where the binding is esta
 - Weapon-system power: `P`
 - Exterior/head lights: `L`
 - NAV/Quantum mode: `B`
-- Starmap: `F2`
 - mobiGlas: `F1`
+- Starmap / Map: `F2`
+- Comms / Contacts: `F11`
+- Personal Inventory: `I`
+- Text Chat: `ENTER`
 - Cruise control: `LALT+C`
 - Space brake: `X`
 - Third person: `F4`
-- Comms: `F11`
 - Personal light: `T`
-- Inventory: `I`
 - Interaction mode: `F`
 - Rescue Beacon: hold `M`
 
 Star Citizen bindings change over time and can be customized by the player. Treat these defaults as a starting point and match NekoVerse to your actual in-game profile.
+
+## Multilingual commands
+
+Common commands and UI shortcuts have localized aliases for the app's supported language presets, including English, Spanish, German, Polish, Russian, French, Italian and Portuguese. The underlying command ID remains the same, so all languages use the user's configured hotkey.
 
 ## Hold actions
 
