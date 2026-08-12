@@ -1,6 +1,7 @@
 const CREATOR = 'NekoSuneVR';
 const { commandCatalog, detectCommandIntent, commandLabel } = require('./commands.cjs');
 const { detectLocalizedCommandIntent } = require('./command-locales.cjs');
+const { combatExtraCatalog, detectCombatExtraIntent, combatExtraLabel } = require('./combat-extra.cjs');
 const ollama = require('./ollama.cjs');
 const wiki = require('./wiki.cjs');
 
@@ -20,7 +21,9 @@ const LOCAL_TEXT = {
 function lt(settings,key){const lang=settings?.language||'en-GB';return LOCAL_TEXT[lang]?.[key]||LOCAL_TEXT['en-GB'][key];}
 
 function detectIntent(text){
-  const command=detectCommandIntent(text)||detectLocalizedCommandIntent(text);
+  // Exact one-shot targeting/fire/quantum aliases take priority over broader
+  // legacy patterns such as "quantum jump" or generic targeting phrases.
+  const command=detectCombatExtraIntent(text)||detectCommandIntent(text)||detectLocalizedCommandIntent(text);
   if(command)return command;
   if(/who (made|created|built) (you|this|the tool)|who is (the )?creator/i.test(text))return'creator';
   if(/optimi[sz]e|performance profile|my hardware/i.test(text))return'optimizer';
@@ -33,18 +36,18 @@ function localReply(message,optimizer,settings){
   if(intent==='creator')return{intent,text:lt(settings,'creator')};
   if(intent==='optimizer')return{intent,text:optimizer?`${lt(settings,'command')} ${optimizer.tier}: ${optimizer.renderer}; ${optimizer.upscaler}; ${optimizer.texture}.`:lt(settings,'busy')};
   if(intent==='commands_help'){
-    const categories=[...new Set(Object.values(commandCatalog).map(c=>c.category))];
+    const categories=[...new Set([...Object.values(commandCatalog),...Object.values(combatExtraCatalog)].map(c=>c.category))];
     return{intent,text:`${lt(settings,'command')} ${categories.join(', ')}.`};
   }
-  if(intent!=='chat')return{intent,text:`${lt(settings,'command')} ${commandLabel(intent)}.`};
+  if(intent!=='chat')return{intent,text:`${lt(settings,'command')} ${combatExtraLabel(intent)||commandLabel(intent)}.`};
   return{intent,text:`NekoVerse Companion — ${CREATOR}.`};
 }
 
 function systemPrompt(context,settings){
-  const available=Object.entries(commandCatalog).map(([id,c])=>`${id}:${c.label}`).join(', ');
+  const available=[...Object.entries(commandCatalog),...Object.entries(combatExtraCatalog)].map(([id,c])=>`${id}:${c.label}`).join(', ');
   const locale=settings?.language||'en-GB';
   const language=LANGUAGE_NAMES[locale]||'English';
-  return `You are NekoVerse Companion, an unofficial Star Citizen desktop assistant created by NekoSuneVR. Always answer in ${language} unless the user explicitly asks for another language. Be concise, practical, friendly, and especially helpful to new players. The user may ask where a city, station, shop, item, commodity or ore is located, where to buy/sell something, or where to mine/refine it. When Verse Guide data is present in Current local context, treat that Star Citizen Wiki API data as your factual grounding and explain the route/location in simple steps. If the guide data does not contain an exact match, do not invent a location: say you could not verify the exact term and suggest checking the spelling or using the Verse Guide search. Mention relevant planet/moon/system, shop/terminal, mining body or landing-zone district when the supplied data supports it. The desktop app can only control the game when the user explicitly speaks or types a supported command that maps to a configured one-shot hotkey or configured hold action. Never claim autonomous control. Do not provide cheats, aim/recoil assistance, unattended navigation/play, exploit instructions, memory/process injection, packet manipulation, or anti-cheat bypasses. Supported command slots: ${available.slice(0,6500)}. Current local context: ${JSON.stringify(context||{}).slice(0,14000)}`;
+  return `You are NekoVerse Companion, an unofficial Star Citizen desktop assistant created by NekoSuneVR. Always answer in ${language} unless the user explicitly asks for another language. Be concise, practical, friendly, and especially helpful to new players. The user may ask where a city, station, shop, item, commodity or ore is located, where to buy/sell something, or where to mine/refine it. When Verse Guide data is present in Current local context, treat that Star Citizen Wiki API data as your factual grounding and explain the route/location in simple steps. If the guide data does not contain an exact match, do not invent a location: say you could not verify the exact term and suggest checking the spelling or using the Verse Guide search. Mention relevant planet/moon/system, shop/terminal, mining body or landing-zone district when the supplied data supports it. The desktop app can only control the game when the user explicitly speaks or types a supported command that maps to a configured one-shot hotkey or configured hold action. Combat actions are limited to explicit single inputs such as selecting/locking a target, changing a mode, deploying a countermeasure, or firing once. Never create sustained/timed rapid-fire loops, automatic target-following, autonomous combat, aim/recoil assistance, unattended navigation/play, exploit instructions, memory/process injection, packet manipulation, or anti-cheat bypasses. Supported command slots: ${available.slice(0,7500)}. Current local context: ${JSON.stringify(context||{}).slice(0,14000)}`;
 }
 
 async function ollamaReply(message,settings,context){
