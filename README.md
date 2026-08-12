@@ -1,5 +1,9 @@
 # NekoVerse Companion
 
+<p align="center">
+  <img src="assets/icon.png" alt="NekoVerse Companion icon" width="220" />
+</p>
+
 > A modern Star Citizen desktop companion created by **NekoSuneVR**.
 
 NekoVerse Companion brings the things you normally keep in separate tabs into one green sci-fi command deck: current LIVE/PTU state, a news feed, FleetYards ship search, voice-triggered utility hotkeys, hardware-aware graphics recommendations, and a cautious third-party marketplace finder.
@@ -35,6 +39,8 @@ Star Citizen changes frequently, and aggressive “FPS tweak packs” can make a
 3. If you click **Apply safe renderer profile**, back up `GraphicsSettings.json` and modify only the renderer field.
 4. Keep the rest as visible in-game recommendations rather than writing undocumented CVars.
 5. **Restore backup** puts the latest NekoVerse backup back in place.
+
+The UI also explains that Vulkan can improve CPU-side performance on suitable hardware while some current Star Citizen builds may exhibit Vulkan-specific severe FPS drops; in that case use the DirectX/D3D fallback.
 
 ## Setup
 
@@ -76,17 +82,45 @@ The built-in intent engine works without a cloud model. In Settings you can opti
 ## Data integrations
 
 - RSI support / Star Citizen website – current channel status and original source links.
-- Star Citizen Wiki API – community API over RSI archive/game data.
+- Star Citizen Wiki API – community API over RSI archive/game data. Public projects should credit the service and follow its terms.
 - FleetYards – public ship database/API.
 - Star Hangar, Space Foundry and The Impound – public third-party listing search only; no account or purchasing integration.
 
 NekoVerse caches no RSI login credentials and does not attempt to access private account data.
 
+## Repository / releases
+
+The included workflow builds on `windows-latest` for every push/PR and uploads build artifacts. Push a tag such as:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The workflow will create a GitHub Release from files in `release/`.
+
+## Project layout
+
+```text
+NekoVerse-Companion/
+├─ electron/
+│  ├─ main.cjs
+│  ├─ preload.cjs
+│  └─ services/
+├─ src/
+│  ├─ App.jsx
+│  ├─ index.css
+│  └─ lib/api.js
+├─ docs/
+├─ .github/workflows/build.yml
+└─ package.json
+```
+
 ## Credits
 
 Created by **NekoSuneVR**.
 
-This is an unofficial community project and is not affiliated with, endorsed by, or sponsored by Cloud Imperium Games or Roberts Space Industries.
+This is an unofficial community project and is not affiliated with, endorsed by, or sponsored by Cloud Imperium Games or Roberts Space Industries. Star Citizen and related marks/assets belong to their respective owners.
 
 ## License
 

@@ -34,10 +34,19 @@
   "build": {
     "appId": "uk.co.nekosunevr.nekoversecompanion",
     "productName": "NekoVerse Companion",
-    "directories": {"output": "release"},
-    "files": ["dist/**/*", "electron/**/*", "package.json"],
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
     "win": {
-      "target": ["nsis", "portable"],
+      "target": [
+        "nsis",
+        "portable"
+      ],
       "artifactName": "NekoVerse-Companion-${version}-${arch}.${ext}",
       "icon": "build/icon.ico"
     },

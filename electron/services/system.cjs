@@ -42,7 +42,7 @@ async function getHardware() {
         if (mib > 0) basic.vramGB = Math.round((mib / 1024) * 10) / 10;
       } catch {}
     }
-  } catch {}
+  } catch { /* keep portable fallback */ }
   return basic;
 }
 
