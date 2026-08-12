@@ -1,0 +1,51 @@
+{
+  "name": "nekoverse-companion",
+  "version": "0.1.0",
+  "description": "A modern Star Citizen companion by NekoSuneVR: live/PTU status, news, voice commands, FleetYards, marketplace search, and conservative hardware-aware optimisation.",
+  "author": "NekoSuneVR",
+  "license": "MIT",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "dev:renderer": "vite --host 127.0.0.1 --port 5173",
+    "dev:electron": "wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .",
+    "build": "vite build",
+    "dist": "npm run build && electron-builder --win nsis portable",
+    "dist:dir": "npm run build && electron-builder --win --dir",
+    "check": "node --check electron/main.cjs && node --check electron/preload.cjs && node --check electron/services/system.cjs && node --check electron/services/starcitizen.cjs && node --check electron/services/fleetyards.cjs && node --check electron/services/marketplace.cjs && node --check electron/services/optimizer.cjs && node --check electron/services/hotkeys.cjs && node --check electron/services/voice.cjs && node --check electron/services/assistant.cjs"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
+    "tailwindcss": "^4.0.0",
+    "vite": "^6.0.7",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "uk.co.nekosunevr.nekoversecompanion",
+    "productName": "NekoVerse Companion",
+    "directories": {"output": "release"},
+    "files": ["dist/**/*", "electron/**/*", "package.json"],
+    "win": {
+      "target": ["nsis", "portable"],
+      "artifactName": "NekoVerse-Companion-${version}-${arch}.${ext}",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
