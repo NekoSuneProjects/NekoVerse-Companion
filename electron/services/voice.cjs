@@ -2,10 +2,28 @@ const { spawn, execFile } = require('node:child_process');
 
 let listener = null;
 let speaker = null;
+let listenerCulture = null;
+
+const CULTURES = {
+  'en-GB': 'en-GB',
+  'en-US': 'en-US',
+  'es-ES': 'es-ES',
+  'de-DE': 'de-DE',
+  'pl-PL': 'pl-PL',
+  'ru-RU': 'ru-RU',
+  'fr-FR': 'fr-FR',
+  'it-IT': 'it-IT',
+  'pt-PT': 'pt-PT',
+  'pt-BR': 'pt-BR'
+};
+
+function normalizeCulture(value) {
+  return CULTURES[value] || 'en-GB';
+}
 
 function speak(text) {
   if (process.platform !== 'win32') return Promise.resolve({ ok:false, error:'Windows TTS is required for built-in voice output.' });
-  const safe = String(text || '').replace(/'/g, "''").slice(0, 1500);
+  const safe = String(text || '').replace(/'/g, "''").slice(0, 1800);
 
   stopSpeaking();
 
@@ -43,14 +61,29 @@ function playWakeSound() {
   });
 }
 
-function start(onText) {
-  if (listener) return { ok: true, alreadyRunning: true };
+function start(onText, language = 'en-GB') {
+  if (listener) return { ok:true, alreadyRunning:true, culture:listenerCulture };
   if (process.platform !== 'win32') return { ok:false, error:'Built-in voice recognition currently requires Windows System.Speech.' };
+
+  const culture = normalizeCulture(language);
+  listenerCulture = culture;
+  const safeCulture = culture.replace(/'/g, "''");
   const script = `
 Add-Type -AssemblyName System.Speech;
-$rec=New-Object System.Speech.Recognition.SpeechRecognitionEngine;
+Add-Type -AssemblyName System.Globalization;
+$cultureName='${safeCulture}';
+$rec=$null;
+$fallback=$false;
+try {
+  $culture=[System.Globalization.CultureInfo]::GetCultureInfo($cultureName);
+  $rec=New-Object System.Speech.Recognition.SpeechRecognitionEngine($culture);
+} catch {
+  $fallback=$true;
+  $rec=New-Object System.Speech.Recognition.SpeechRecognitionEngine;
+}
 $rec.SetInputToDefaultAudioDevice();
 $rec.LoadGrammar((New-Object System.Speech.Recognition.DictationGrammar));
+Write-Output ('NVSTATUS:' + $(if($fallback){'fallback'}else{$cultureName})); [Console]::Out.Flush();
 while($true){ try { $r=$rec.Recognize([TimeSpan]::FromSeconds(3)); if($r){ Write-Output ('NVVOICE:'+$r.Text); [Console]::Out.Flush() } } catch {} }
 `;
   listener = spawn('powershell.exe', ['-NoProfile','-NonInteractive','-Command', script], { windowsHide:true });
@@ -58,10 +91,13 @@ while($true){ try { $r=$rec.Recognize([TimeSpan]::FromSeconds(3)); if($r){ Write
   listener.stdout.on('data', chunk => {
     buf += chunk.toString();
     const lines = buf.split(/\r?\n/); buf = lines.pop() || '';
-    for (const line of lines) if (line.startsWith('NVVOICE:')) onText(line.slice(8).trim());
+    for (const line of lines) {
+      if (line.startsWith('NVVOICE:')) onText(line.slice(8).trim());
+      if (line.startsWith('NVSTATUS:') && line.slice(9).trim()==='fallback') listenerCulture = 'windows-default';
+    }
   });
-  listener.on('exit', () => { listener = null; });
-  return { ok:true };
+  listener.on('exit', () => { listener = null; listenerCulture = null; });
+  return { ok:true, requestedCulture:culture };
 }
 
 function stop() {
@@ -69,7 +105,11 @@ function stop() {
   if (!listener) return { ok:true, running:false };
   try { listener.kill(); } catch {}
   listener = null;
+  listenerCulture = null;
   return { ok:true, running:false };
 }
 
-module.exports = { speak, stopSpeaking, playWakeSound, start, stop };
+function isRunning() { return Boolean(listener); }
+function getCulture() { return listenerCulture; }
+
+module.exports = { speak, stopSpeaking, playWakeSound, start, stop, isRunning, getCulture, normalizeCulture };
