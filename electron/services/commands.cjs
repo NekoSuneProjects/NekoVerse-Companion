@@ -80,14 +80,41 @@ const commandCatalog = {
     label: 'Quantum engage (bind your preferred key)', category: 'Navigation', combo: '',
     aliases: [/engage quantum/i, /quantum jump/i, /start quantum/i, /jump now/i]
   },
-  starmap: {
-    label: 'Open Starmap', category: 'Navigation', combo: 'F2',
-    aliases: [/(open|show) (the )?star ?map/i, /navigation map/i, /route planner/i]
-  },
+
+  // mobiGlas / UI shortcuts
   mobiglas: {
-    label: 'Open mobiGlas', category: 'Navigation', combo: 'F1',
-    aliases: [/(open|show) (my )?mobiglas/i, /mobi ?glas/i]
+    label: 'Open mobiGlas', category: 'mobiGlas & UI', combo: 'F1',
+    aliases: [/(open|show) (my )?mobi ?glas/i, /mobi ?glas/i, /(open|show) (the )?(wrist|mobi) ui/i, /open main ui/i]
   },
+  starmap: {
+    label: 'Open Starmap / Map', category: 'mobiGlas & UI', combo: 'F2',
+    aliases: [/(open|show) (the )?star ?map/i, /(open|show) (the )?map/i, /navigation map/i, /route planner/i, /star ?map/i]
+  },
+  comms: {
+    label: 'Open Comms / Contacts', category: 'mobiGlas & UI', combo: 'F11',
+    aliases: [/(open|show) (the )?comms/i, /(open|show) (the )?contacts/i, /communication(s)? menu/i, /contacts screen/i, /comms screen/i]
+  },
+  contracts: {
+    label: 'Open Contracts Manager (bind if needed)', category: 'mobiGlas & UI', combo: '',
+    aliases: [/(open|show) (the )?contracts/i, /(open|show) (the )?contract manager/i, /(open|show) (the )?mission manager/i, /(open|show) (the )?missions/i, /contracts screen/i, /missions screen/i]
+  },
+  inventory: {
+    label: 'Open Personal Inventory', category: 'mobiGlas & UI', combo: 'I',
+    aliases: [/(open|show) (my )?inventory/i, /my inventory/i, /inventory screen/i, /(open|show) (my )?backpack/i]
+  },
+  text_chat: {
+    label: 'Open Text Chat', category: 'mobiGlas & UI', combo: 'ENTER',
+    aliases: [/(open|show) (the )?(text )?chat/i, /chat box/i, /type in chat/i, /open message box/i]
+  },
+  journal: {
+    label: 'Open Journal (bind if available)', category: 'mobiGlas & UI', combo: '',
+    aliases: [/(open|show) (the )?journal/i, /journal screen/i, /logbook/i]
+  },
+  vehicle_manager: {
+    label: 'Open Vehicle Manager (bind if available)', category: 'mobiGlas & UI', combo: '',
+    aliases: [/(open|show) (the )?vehicle manager/i, /(open|show) (the )?vehicle loadout/i, /ship loadout screen/i, /vehicle loadout screen/i]
+  },
+
   cruise_control: {
     label: 'Cruise control toggle', category: 'Flight Movement', combo: 'LALT+C',
     aliases: [/cruise control/i, /toggle cruise/i, /hold (this )?speed/i]
@@ -184,10 +211,6 @@ const commandCatalog = {
     label: 'Head tracking toggle', category: 'Camera & View', combo: '',
     aliases: [/head tracking/i, /trackir/i, /toggle tracking/i]
   },
-  comms: {
-    label: 'Comms / contacts', category: 'Comms', combo: 'F11',
-    aliases: [/(open|show) comms/i, /contacts/i, /communication(s)? menu/i]
-  },
   voip_toggle: {
     label: 'VOIP toggle', category: 'Comms', combo: '',
     aliases: [/(toggle|enable|disable) voip/i, /voice chat/i]
@@ -206,10 +229,6 @@ const commandCatalog = {
     label: 'Personal flashlight', category: 'On Foot', combo: 'T',
     aliases: [/(personal|helmet|suit) light/i, /flashlight/i, /(turn|switch) torch (on|off)/i]
   },
-  inventory: {
-    label: 'Personal inventory', category: 'On Foot', combo: 'I',
-    aliases: [/(open|show) inventory/i, /my inventory/i]
-  },
   interact_mode: {
     label: 'Interaction mode', category: 'On Foot', combo: 'F',
     aliases: [/interaction mode/i, /interact/i]
@@ -225,10 +244,6 @@ const commandCatalog = {
   rescue_beacon: {
     label: 'SOS / Rescue Beacon (hold)', category: 'Medical', combo: 'M', mode: 'hold', holdMs: 1400,
     aliases: [/call (an )?(sos|rescue|medic|medical rescue)/i, /send (an )?sos/i, /rescue beacon/i, /medical beacon/i, /help me i('| a)?m down/i, /i('| a)?m incapacitated/i, /call for help/i]
-  },
-  contracts: {
-    label: 'Contracts Manager', category: 'Medical', combo: '',
-    aliases: [/(open|show) contracts/i, /contracts manager/i, /missions/i]
   }
 };
 
