@@ -1,12 +1,45 @@
 const { spawn, execFile } = require('node:child_process');
 
 let listener = null;
+let speaker = null;
 
 function speak(text) {
   if (process.platform !== 'win32') return Promise.resolve({ ok:false, error:'Windows TTS is required for built-in voice output.' });
   const safe = String(text || '').replace(/'/g, "''").slice(0, 1500);
+
+  stopSpeaking();
+
   return new Promise(resolve => {
-    execFile('powershell.exe', ['-NoProfile','-NonInteractive','-Command', `Add-Type -AssemblyName System.Speech; $s=New-Object System.Speech.Synthesis.SpeechSynthesizer; $s.Speak('${safe}')`], { windowsHide:true }, err => resolve(err ? {ok:false,error:err.message}:{ok:true}));
+    const child = execFile(
+      'powershell.exe',
+      ['-NoProfile','-NonInteractive','-Command', `Add-Type -AssemblyName System.Speech; $s=New-Object System.Speech.Synthesis.SpeechSynthesizer; $s.Speak('${safe}')`],
+      { windowsHide:true },
+      err => {
+        if (speaker === child) speaker = null;
+        resolve(err ? {ok:false,error:err.message}:{ok:true});
+      }
+    );
+    speaker = child;
+  });
+}
+
+function stopSpeaking() {
+  if (!speaker) return { ok:true, speaking:false };
+  const child = speaker;
+  speaker = null;
+  try { child.kill(); } catch {}
+  return { ok:true, speaking:false, interrupted:true };
+}
+
+function playWakeSound() {
+  if (process.platform !== 'win32') return Promise.resolve({ ok:false, error:'Wake sound currently uses Windows audio.' });
+  return new Promise(resolve => {
+    execFile(
+      'powershell.exe',
+      ['-NoProfile','-NonInteractive','-Command', `[console]::Beep(880,90); Start-Sleep -Milliseconds 35; [console]::Beep(1175,80)`],
+      { windowsHide:true },
+      err => resolve(err ? {ok:false,error:err.message}:{ok:true})
+    );
   });
 }
 
@@ -32,10 +65,11 @@ while($true){ try { $r=$rec.Recognize([TimeSpan]::FromSeconds(3)); if($r){ Write
 }
 
 function stop() {
+  stopSpeaking();
   if (!listener) return { ok:true, running:false };
   try { listener.kill(); } catch {}
   listener = null;
   return { ok:true, running:false };
 }
 
-module.exports = { speak, start, stop };
+module.exports = { speak, stopSpeaking, playWakeSound, start, stop };
