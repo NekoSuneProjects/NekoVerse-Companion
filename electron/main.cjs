@@ -10,12 +10,25 @@ const hotkeys = require('./services/hotkeys.cjs');
 const voice = require('./services/voice.cjs');
 const assistant = require('./services/assistant.cjs');
 const ollama = require('./services/ollama.cjs');
+const updates = require('./services/updates.cjs');
 
 let win;
 let settings = null;
 let lastOptimizer = null;
+let voiceCommandBusy = false;
+let lastVoiceIntent = null;
+let lastVoiceFinishedAt = 0;
+let assistantRequestBusy = false;
+let updateTimer = null;
+let lastUpdateCheckAt = 0;
+let lastUpdateResult = null;
+let lastNotifiedVersion = null;
 
+const VOICE_DUPLICATE_COOLDOWN_MS = 4000;
+const UPDATE_POLL_MS = 5 * 60 * 1000;
+const UPDATE_CACHE_MS = 60 * 1000;
 const LEGACY_WAKE_WORDS = ['neko', 'nekoverse', 'computer'];
+
 const defaultSettings = {
   // Direct microphone commands are the default. Users can optionally turn
   // wake-word mode back on and choose their own easier-to-pronounce word.
@@ -86,8 +99,35 @@ function createWindow() {
   win.webContents.setWindowOpenHandler(({url}) => { if (/^https?:\/\//i.test(url)) shell.openExternal(url); return {action:'deny'}; });
 }
 
+async function getUpdateStatus(force = false) {
+  const now = Date.now();
+  if (!force && lastUpdateResult && now - lastUpdateCheckAt < UPDATE_CACHE_MS) return lastUpdateResult;
+
+  lastUpdateCheckAt = now;
+  lastUpdateResult = await updates.checkForUpdate(app.getVersion());
+
+  if (
+    lastUpdateResult?.available &&
+    lastUpdateResult.latestVersion &&
+    lastUpdateResult.latestVersion !== lastNotifiedVersion &&
+    win && !win.isDestroyed()
+  ) {
+    lastNotifiedVersion = lastUpdateResult.latestVersion;
+    win.webContents.send('update:available', lastUpdateResult);
+  }
+
+  return lastUpdateResult;
+}
+
+function startUpdatePolling() {
+  if (updateTimer) clearInterval(updateTimer);
+  setTimeout(() => { getUpdateStatus(true).catch(() => {}); }, 10000);
+  updateTimer = setInterval(() => { getUpdateStatus(true).catch(() => {}); }, UPDATE_POLL_MS);
+  updateTimer.unref?.();
+}
+
 async function runRecognized(text) {
-  if (!win || win.isDestroyed()) return;
+  if (!win || win.isDestroyed() || voiceCommandBusy) return;
 
   const lower = text.toLowerCase();
   const wake = (settings.wakeWords || []).find(w => lower.includes(String(w).toLowerCase()));
@@ -96,29 +136,58 @@ async function runRecognized(text) {
   const escapedWake = wake ? String(wake).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
   const cleaned = wake ? text.replace(new RegExp(escapedWake,'i'),'').trim() : text.trim();
   const commandText = cleaned || text;
+  const detectedIntent = assistant.detectIntent(commandText);
 
   // In direct-microphone mode, ignore ordinary background conversation.
   // Only known command/special intents are processed without a wake word.
-  if (!settings.requireWakeWord && assistant.detectIntent(commandText) === 'chat') return;
+  if (!settings.requireWakeWord && detectedIntent === 'chat') return;
 
-  const reply = await assistant.ask(commandText, settings, { optimizer:lastOptimizer?.recommended });
-  let actionResult = null;
-  if (reply.intent && settings.commands?.[reply.intent]) actionResult = await hotkeys.runCommand(reply.intent, settings);
-  const payload = { recognized:text, command:commandText, reply, actionResult };
-  win.webContents.send('voice:recognized', payload);
-  if (settings.speakReplies) voice.speak(actionResult?.error ? `${reply.text} ${actionResult.error}` : reply.text);
+  // SpeechRecognition can emit the same phrase more than once, and TTS can be
+  // picked up by the microphone. Only accept one command at a time and ignore
+  // a duplicate intent for a short period after the previous one completes.
+  if (detectedIntent === lastVoiceIntent && Date.now() - lastVoiceFinishedAt < VOICE_DUPLICATE_COOLDOWN_MS) return;
+
+  voiceCommandBusy = true;
+  try {
+    const reply = await assistant.ask(commandText, settings, { optimizer:lastOptimizer?.recommended });
+    let actionResult = null;
+    if (reply.intent && settings.commands?.[reply.intent]) actionResult = await hotkeys.runCommand(reply.intent, settings);
+
+    lastVoiceIntent = reply.intent || detectedIntent;
+    const payload = { recognized:text, command:commandText, reply, actionResult };
+    win.webContents.send('voice:recognized', payload);
+
+    // Await TTS so the microphone lock stays active while the app is speaking.
+    if (settings.speakReplies) {
+      await voice.speak(actionResult?.error ? `${reply.text} ${actionResult.error}` : reply.text);
+    }
+  } finally {
+    lastVoiceFinishedAt = Date.now();
+    voiceCommandBusy = false;
+  }
 }
 
 app.whenReady().then(() => {
-  loadSettings(); createWindow();
+  loadSettings();
+  createWindow();
+  startUpdatePolling();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length===0) createWindow(); });
 });
-app.on('window-all-closed', () => { voice.stop(); if (process.platform !== 'darwin') app.quit(); });
+app.on('window-all-closed', () => {
+  voice.stop();
+  if (updateTimer) clearInterval(updateTimer);
+  if (process.platform !== 'darwin') app.quit();
+});
 
 ipcMain.handle('app:bootstrap', async () => {
-  const [status, news, opt] = await Promise.all([getStatus(), getNews(), optimizer.analyze(settings.customInstallPath)]);
+  const [status, news, opt, update] = await Promise.all([
+    getStatus(),
+    getNews(),
+    optimizer.analyze(settings.customInstallPath),
+    getUpdateStatus(false)
+  ]);
   lastOptimizer = opt;
-  return { status, news, optimizer:opt, settings, creator:assistant.CREATOR };
+  return { status, news, optimizer:opt, settings, creator:assistant.CREATOR, appVersion:app.getVersion(), update };
 });
 ipcMain.handle('sc:status', () => getStatus());
 ipcMain.handle('sc:news', () => getNews());
@@ -132,13 +201,22 @@ ipcMain.handle('voice:start', () => voice.start(runRecognized));
 ipcMain.handle('voice:stop', () => voice.stop());
 ipcMain.handle('hotkey:run', (_e,cmd) => hotkeys.runCommand(cmd, settings));
 ipcMain.handle('assistant:ask', async (_e,msg) => {
-  const reply = await assistant.ask(msg, settings, { optimizer:lastOptimizer?.recommended });
-  let actionResult = null;
-  if (reply.intent && settings.commands?.[reply.intent]) actionResult = await hotkeys.runCommand(reply.intent, settings);
-  if (settings.speakReplies) voice.speak(actionResult?.error ? `${reply.text} ${actionResult.error}` : reply.text);
-  return { reply, actionResult };
+  if (assistantRequestBusy) {
+    return { busy:true, reply:{ intent:'chat', text:'One request is already being processed. Please wait for it to finish.' }, actionResult:null };
+  }
+  assistantRequestBusy = true;
+  try {
+    const reply = await assistant.ask(msg, settings, { optimizer:lastOptimizer?.recommended });
+    let actionResult = null;
+    if (reply.intent && settings.commands?.[reply.intent]) actionResult = await hotkeys.runCommand(reply.intent, settings);
+    if (settings.speakReplies) await voice.speak(actionResult?.error ? `${reply.text} ${actionResult.error}` : reply.text);
+    return { reply, actionResult };
+  } finally {
+    assistantRequestBusy = false;
+  }
 });
 ipcMain.handle('ollama:models', (_e,baseUrl) => ollama.listModels(baseUrl || settings.ollama?.baseUrl));
+ipcMain.handle('update:check', () => getUpdateStatus(true));
 ipcMain.handle('settings:get', () => settings);
 ipcMain.handle('settings:save', (_e,next) => saveSettings(next));
 ipcMain.handle('shell:open', async (_e,url) => { if (/^https?:\/\//i.test(url)) { await shell.openExternal(url); return true; } return false; });
