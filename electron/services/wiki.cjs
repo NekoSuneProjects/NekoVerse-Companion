@@ -129,6 +129,23 @@ async function expandHit(hit) {
   }
 }
 
+function extractGuideQuery(input) {
+  let text = String(input || '').trim();
+  text = text
+    .replace(/^(hey\s+)?(jarvis|computer|companion)[,\s:]*/i, '')
+    .replace(/\b(please|for me|in star citizen|star citizen)\b/gi, ' ')
+    .replace(/^where\s+(?:can\s+i\s+|do\s+i\s+)?(?:find|get|buy|sell|mine|locate)\s+/i, '')
+    .replace(/^where\s+(?:is|are)\s+/i, '')
+    .replace(/^what\s+is\s+/i, '')
+    .replace(/^how\s+(?:do\s+i|can\s+i)\s+(?:find|get|buy|sell|mine|reach|go\s+to)\s+/i, '')
+    .replace(/^which\s+(?:place|moon|planet|station)\s+(?:has|contains|sells|buys)\s+/i, '')
+    .replace(/[?.!]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return text || String(input || '').trim();
+}
+
 async function genericSearch(query) {
   const variants = [
     `${API_BASE}/search/${encodeURIComponent(query)}`,
@@ -164,7 +181,7 @@ async function filteredSearch(query) {
 }
 
 async function searchVerse(query) {
-  const clean = String(query || '').trim();
+  const clean = extractGuideQuery(query);
   if (!clean) return { ok:false, query:clean, items:[], error:'Enter an item, ore, ship, mission, city, moon, station or other Star Citizen term.' };
 
   try {
@@ -231,4 +248,4 @@ async function getAssistantKnowledge(message) {
   };
 }
 
-module.exports = { API_BASE, searchVerse, looksLikeGuideQuestion, getAssistantKnowledge };
+module.exports = { API_BASE, extractGuideQuery, searchVerse, looksLikeGuideQuestion, getAssistantKnowledge };
