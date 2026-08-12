@@ -12,6 +12,7 @@ const assistant = require('./services/assistant.cjs');
 const ollama = require('./services/ollama.cjs');
 const updates = require('./services/updates.cjs');
 const wiki = require('./services/wiki.cjs');
+const storage = require('./services/storage.cjs');
 
 let win;
 let settings = null;
@@ -32,13 +33,13 @@ const WAKE_WINDOW_MS = 8000;
 const UPDATE_POLL_MS = 5 * 60 * 1000;
 const UPDATE_CACHE_MS = 60 * 1000;
 const LEGACY_WAKE_WORDS = ['neko', 'nekoverse', 'computer'];
-const STOP_SPEAKING_RE = /\b(shut\s*up|stop\s+(talking|speaking)|be\s+quiet|silence|quiet\s+please)\b/i;
+const STOP_SPEAKING_RE = /\b(shut\s*up|stop\s+(talking|speaking)|be\s+quiet|silence|quiet\s+please|c[aá]llate|deja\s+de\s+hablar|silencio|sei\s+still|h[oö]r\s+auf\s+zu\s+reden|ruhe|zamknij\s+si[eę]|przesta[nń]\s+m[oó]wi[cć]|cisza|замолчи|перестань\s+говорить|тихо|tais[- ]toi|arr[eê]te\s+de\s+parler|stai\s+zitto|smetti\s+di\s+parlare|cala[- ]te|para\s+de\s+falar)\b/i;
 
 const defaultSettings = {
-  // Direct known commands work without a wake word. Free-form voice questions
-  // use the easy-to-pronounce Jarvis wake word (or a user-defined alternative).
+  language: 'en-GB',
+  onboardingComplete: false,
   wakeWords: ['jarvis'],
-  requireWakeWord: false,
+  requireWakeWord: true,
   speakReplies: true,
   customInstallPath: '',
   commands: buildDefaultCommands(),
@@ -48,50 +49,56 @@ const defaultSettings = {
   }
 };
 
-function settingsFile() { return path.join(app.getPath('userData'), 'settings.json'); }
+function legacySettingsFile() { return path.join(app.getPath('userData'), 'settings.json'); }
+function databaseFile() { return path.join(app.getPath('userData'), 'nekoverse.sqlite'); }
 function sameWords(a = [], b = []) {
   return a.length === b.length && a.every((word, i) => String(word).toLowerCase() === String(b[i]).toLowerCase());
 }
-function loadSettings() {
-  let loaded = null;
-  try { loaded = JSON.parse(fs.readFileSync(settingsFile(),'utf8')); }
-  catch { loaded = null; }
 
-  settings = loaded ? { ...defaultSettings, ...loaded } : structuredClone(defaultSettings);
-
-  // Migrate the original hard-to-pronounce shipped wake words to Jarvis.
-  // Custom wake-word setups remain untouched.
+function normalizeSettings(loaded) {
+  const next = loaded ? { ...defaultSettings, ...loaded } : structuredClone(defaultSettings);
   if (sameWords(loaded?.wakeWords || [], LEGACY_WAKE_WORDS)) {
-    settings.requireWakeWord = false;
-    settings.wakeWords = ['jarvis'];
+    next.wakeWords = ['jarvis'];
+    next.requireWakeWord = true;
   }
-  if (!Array.isArray(settings.wakeWords) || !settings.wakeWords.length) settings.wakeWords = ['jarvis'];
-
-  settings.commands = { ...defaultSettings.commands, ...(settings.commands || {}) };
+  if (!Array.isArray(next.wakeWords) || !next.wakeWords.length) next.wakeWords = ['jarvis'];
+  if (!next.language) next.language = 'en-GB';
+  if (typeof next.onboardingComplete !== 'boolean') next.onboardingComplete = false;
+  next.commands = { ...defaultSettings.commands, ...(next.commands || {}) };
   for (const [id, defaults] of Object.entries(defaultSettings.commands)) {
-    settings.commands[id] = { ...defaults, ...(settings.commands[id] || {}) };
+    next.commands[id] = { ...defaults, ...(next.commands[id] || {}) };
   }
-  settings.ollama = { ...defaultSettings.ollama, ...(settings.ollama || {}) };
+  next.ollama = { ...defaultSettings.ollama, ...(next.ollama || {}) };
+  return next;
+}
 
-  if (sameWords(loaded?.wakeWords || [], LEGACY_WAKE_WORDS)) {
+async function loadSettings() {
+  let loaded = storage.getJson('settings', null);
+  if (!loaded) {
     try {
-      fs.mkdirSync(path.dirname(settingsFile()), {recursive:true});
-      fs.writeFileSync(settingsFile(), JSON.stringify(settings,null,2));
-    } catch {}
+      loaded = JSON.parse(fs.readFileSync(legacySettingsFile(), 'utf8'));
+      storage.setMeta('migrated_from_json', new Date().toISOString());
+    } catch { loaded = null; }
   }
-
+  settings = normalizeSettings(loaded);
+  storage.setJson('settings', settings);
   return settings;
 }
+
 function saveSettings(next) {
-  settings = {
+  const wasListening = voice.isRunning();
+  const previousLanguage = settings?.language;
+  settings = normalizeSettings({
     ...settings,
     ...next,
     commands:{...settings.commands,...(next.commands||{})},
     ollama:{...settings.ollama,...(next.ollama||{})}
-  };
-  if (!Array.isArray(settings.wakeWords) || !settings.wakeWords.length) settings.wakeWords = ['jarvis'];
-  fs.mkdirSync(path.dirname(settingsFile()), {recursive:true});
-  fs.writeFileSync(settingsFile(), JSON.stringify(settings,null,2));
+  });
+  storage.setJson('settings', settings);
+  if (wasListening && previousLanguage !== settings.language) {
+    voice.stop();
+    voice.start(runRecognized, settings.language);
+  }
   return settings;
 }
 
@@ -109,20 +116,12 @@ function createWindow() {
 async function getUpdateStatus(force = false) {
   const now = Date.now();
   if (!force && lastUpdateResult && now - lastUpdateCheckAt < UPDATE_CACHE_MS) return lastUpdateResult;
-
   lastUpdateCheckAt = now;
   lastUpdateResult = await updates.checkForUpdate(app.getVersion());
-
-  if (
-    lastUpdateResult?.available &&
-    lastUpdateResult.latestVersion &&
-    lastUpdateResult.latestVersion !== lastNotifiedVersion &&
-    win && !win.isDestroyed()
-  ) {
+  if (lastUpdateResult?.available && lastUpdateResult.latestVersion && lastUpdateResult.latestVersion !== lastNotifiedVersion && win && !win.isDestroyed()) {
     lastNotifiedVersion = lastUpdateResult.latestVersion;
     win.webContents.send('update:available', lastUpdateResult);
   }
-
   return lastUpdateResult;
 }
 
@@ -137,38 +136,28 @@ function findWakeWord(text) {
   const lower = String(text || '').toLowerCase();
   return (settings.wakeWords || ['jarvis']).find(w => lower.includes(String(w).toLowerCase())) || null;
 }
-
 function stripWakeWord(text, wake) {
   if (!wake) return String(text || '').trim();
   const escapedWake = String(wake).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return String(text || '').replace(new RegExp(escapedWake,'i'),'').replace(/^[,\s:;-]+/, '').trim();
 }
-
 function stopCurrentSpeech(reason = 'Speech stopped.') {
   voiceCancelEpoch += 1;
   wakeActiveUntil = 0;
   const result = voice.stopSpeaking();
   if (win && !win.isDestroyed()) {
-    win.webContents.send('voice:recognized', {
-      recognized:reason,
-      command:'stop_speaking',
-      reply:{ intent:'stop_speaking', text:reason },
-      actionResult:result
-    });
+    win.webContents.send('voice:recognized', { recognized:reason, command:'stop_speaking', reply:{ intent:'stop_speaking', text:reason }, actionResult:result });
   }
   return result;
 }
 
 async function runRecognized(text) {
   if (!win || win.isDestroyed()) return;
-
   const wake = findWakeWord(text);
   const cleaned = stripWakeWord(text, wake);
   const now = Date.now();
   const wakeWasActive = now < wakeActiveUntil;
 
-  // "Jarvis, shut up" must always interrupt, even while another request or
-  // TTS response is active. A plain "shut up" also works as an emergency stop.
   if (STOP_SPEAKING_RE.test(cleaned || text)) {
     if (wake) await voice.playWakeSound();
     stopCurrentSpeech('Speech stopped.');
@@ -178,7 +167,6 @@ async function runRecognized(text) {
   if (wake) {
     wakeActiveUntil = now + WAKE_WINDOW_MS;
     await voice.playWakeSound();
-    // Saying only "Jarvis" arms the next phrase instead of sending an empty AI request.
     if (!cleaned) {
       win.webContents.send('voice:wake', { wakeWord:wake, activeUntil:wakeActiveUntil });
       return;
@@ -186,17 +174,14 @@ async function runRecognized(text) {
   }
 
   if (voiceCommandBusy) return;
-
   const commandText = cleaned || String(text || '').trim();
   const detectedIntent = assistant.detectIntent(commandText);
   const activated = Boolean(wake || wakeWasActive);
 
-  // Strict mode requires a wake word for everything. In the default hybrid
-  // mode, known flight/game commands can be spoken directly, while free-form
-  // questions require Jarvis (or an active Jarvis listening window).
+  // Default v0.1.1 behaviour: wake word applies to commands and questions.
+  // Users can disable strict mode in Settings if they prefer direct commands.
   if (settings.requireWakeWord && !activated) return;
   if (!settings.requireWakeWord && detectedIntent === 'chat' && !activated) return;
-
   if (detectedIntent === lastVoiceIntent && Date.now() - lastVoiceFinishedAt < VOICE_DUPLICATE_COOLDOWN_MS) return;
 
   voiceCommandBusy = true;
@@ -205,14 +190,9 @@ async function runRecognized(text) {
     const reply = await assistant.ask(commandText, settings, { optimizer:lastOptimizer?.recommended });
     let actionResult = null;
     if (reply.intent && settings.commands?.[reply.intent]) actionResult = await hotkeys.runCommand(reply.intent, settings);
-
-    // A later "shut up" can cancel this reply while Ollama is still thinking.
     if (requestEpoch !== voiceCancelEpoch) return;
-
     lastVoiceIntent = reply.intent || detectedIntent;
-    const payload = { recognized:text, command:commandText, reply, actionResult };
-    win.webContents.send('voice:recognized', payload);
-
+    win.webContents.send('voice:recognized', { recognized:text, command:commandText, reply, actionResult });
     if (settings.speakReplies && requestEpoch === voiceCancelEpoch) {
       await voice.speak(actionResult?.error ? `${reply.text} ${actionResult.error}` : reply.text);
     }
@@ -222,8 +202,9 @@ async function runRecognized(text) {
   }
 }
 
-app.whenReady().then(() => {
-  loadSettings();
+app.whenReady().then(async () => {
+  await storage.init(databaseFile());
+  await loadSettings();
   createWindow();
   startUpdatePolling();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length===0) createWindow(); });
@@ -235,14 +216,9 @@ app.on('window-all-closed', () => {
 });
 
 ipcMain.handle('app:bootstrap', async () => {
-  const [status, news, opt, update] = await Promise.all([
-    getStatus(),
-    getNews(),
-    optimizer.analyze(settings.customInstallPath),
-    getUpdateStatus(false)
-  ]);
+  const [status, news, opt, update] = await Promise.all([getStatus(), getNews(), optimizer.analyze(settings.customInstallPath), getUpdateStatus(false)]);
   lastOptimizer = opt;
-  return { status, news, optimizer:opt, settings, creator:assistant.CREATOR, appVersion:app.getVersion(), update };
+  return { status, news, optimizer:opt, settings, creator:assistant.CREATOR, appVersion:app.getVersion(), update, storagePath:storage.getPath() };
 });
 ipcMain.handle('sc:status', () => getStatus());
 ipcMain.handle('sc:news', () => getNews());
@@ -254,26 +230,20 @@ ipcMain.handle('optimizer:apply', (_e,p) => optimizer.apply(p));
 ipcMain.handle('optimizer:restore', () => optimizer.restore());
 ipcMain.handle('voice:speak', (_e,text) => voice.speak(text));
 ipcMain.handle('voice:stop-speaking', () => stopCurrentSpeech('Speech stopped.'));
-ipcMain.handle('voice:start', () => voice.start(runRecognized));
+ipcMain.handle('voice:start', () => voice.start(runRecognized, settings.language));
 ipcMain.handle('voice:stop', () => voice.stop());
 ipcMain.handle('hotkey:run', (_e,cmd) => hotkeys.runCommand(cmd, settings));
 ipcMain.handle('assistant:ask', async (_e,msg) => {
-  if (assistantRequestBusy) {
-    return { busy:true, reply:{ intent:'chat', text:'One request is already being processed. Please wait for it to finish.' }, actionResult:null };
-  }
+  if (assistantRequestBusy) return { busy:true, reply:{ intent:'chat', text:'One request is already being processed. Please wait for it to finish.' }, actionResult:null };
   assistantRequestBusy = true;
   const requestEpoch = voiceCancelEpoch;
   try {
     const reply = await assistant.ask(msg, settings, { optimizer:lastOptimizer?.recommended });
     let actionResult = null;
     if (reply.intent && settings.commands?.[reply.intent]) actionResult = await hotkeys.runCommand(reply.intent, settings);
-    if (settings.speakReplies && requestEpoch === voiceCancelEpoch) {
-      await voice.speak(actionResult?.error ? `${reply.text} ${actionResult.error}` : reply.text);
-    }
+    if (settings.speakReplies && requestEpoch === voiceCancelEpoch) await voice.speak(actionResult?.error ? `${reply.text} ${actionResult.error}` : reply.text);
     return { reply, actionResult };
-  } finally {
-    assistantRequestBusy = false;
-  }
+  } finally { assistantRequestBusy = false; }
 });
 ipcMain.handle('ollama:models', (_e,baseUrl) => ollama.listModels(baseUrl || settings.ollama?.baseUrl));
 ipcMain.handle('update:check', () => getUpdateStatus(true));
