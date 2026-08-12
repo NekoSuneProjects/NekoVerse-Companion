@@ -6,152 +6,163 @@
 
 > A modern Star Citizen desktop companion created by **NekoSuneVR**.
 
-NekoVerse Companion brings the things you normally keep in separate tabs into one green sci-fi command deck: current LIVE/PTU state, a news feed, FleetYards ship search, voice-triggered utility controls, hardware-aware graphics recommendations, and a cautious third-party marketplace finder.
+NekoVerse Companion combines Star Citizen status/news, a multilingual Jarvis voice assistant, new-player location help, FleetYards, marketplace search and conservative hardware-aware optimisation in one desktop app.
 
-**Status:** early public MVP / v0.1.0
+**Current version: v0.1.1**
 
-## Highlights
+## v0.1.1 highlights
 
-- **LIVE + PTU status** – refreshes the current Star Citizen channel state from RSI support data and keeps a conservative fallback for offline periods.
-- **News deck** – retrieves Comm-Link data through the Star Citizen Wiki API/RSI archive mirror and opens the original source externally.
-- **Neko voice assistant** – Windows speech recognition + TTS, wake words and typed chat backed by the NekoSuneVR public Ollama endpoint.
-- **Native Ollama model picker** – defaults to `https://ollama.nekosunevr.co.uk` and `qwen2.5:3b`, scans `/api/tags`, displays model details/capabilities and lets the user change the assistant model from the app UI.
-- **Expanded voice command catalog** – flight/landing, docking, ship power/lights/access, NAV/quantum, cruise/movement, scanning, industrial modes, ground vehicles, camera/comms, helmet/inventory, medical and SOS/rescue actions.
-- **Tap + hold controls** – normal commands can tap a configured combination while actions such as Rescue Beacon can intentionally hold a key for a configured duration.
-- **FleetYards search** – searches the public FleetYards ship database and opens full model pages.
-- **Marketplace finder** – deep-searches public Star Hangar, Space Foundry and The Impound results with an LTI text filter and a prominent grey-market warning.
-- **Adaptive optimizer** – detects CPU/GPU/RAM/VRAM, recommends a performance tier and can safely change the local renderer setting with a timestamped backup.
-- **Modern UI** – React + Tailwind CSS, dark green HUD styling inspired by space-sim cockpit interfaces without shipping copyrighted Star Citizen artwork.
-- **Multi-platform releases** – GitHub Actions builds Windows x64 NSIS/portable EXEs plus Linux AMD64 AppImage/DEB packages, checksums them and publishes tagged releases with generated changelogs.
+- **Jarvis wake word by default** – easy to pronounce and fully customizable.
+- **Wake word applies to voice commands by default** – examples: `Jarvis, request landing`, `Jarvis, gear down`, `Jarvis, headlights`, `Jarvis, call rescue`.
+- **Wake confirmation sound** – a short two-tone beep confirms Jarvis was heard.
+- **8-second wake window** – say only `Jarvis`, hear the tone, then ask the question.
+- **Speech interrupt** – say `Jarvis, shut up`, `stop talking`, or supported-language equivalents to stop TTS immediately.
+- **One request at a time** – assistant and microphone requests are locked so speech recognition/TTS cannot spam the same action repeatedly.
+- **Verse Guide** – search Star Citizen Wiki API data for cities, stations, ores, commodities, items, ships and missions. Jarvis uses this data when answering new-player location/acquisition questions.
+- **Multilingual first-run setup** – English, Spanish, German, Polish, Russian, French, Italian and Portuguese.
+- **Multilingual Jarvis** – replies in the selected language and requests the matching Windows speech-recognition culture when available.
+- **Multilingual command aliases** – common landing, docking, lighting, access, quantum, navigation, mining, vehicle, helmet, inventory and rescue commands support multiple languages.
+- **Automatic Star Citizen install detection** – checks the running game, RSI Launcher hints, registry entries, Program Files and common library paths across mounted drives before falling back to a manual path.
+- **SQLite settings storage** – `%APPDATA%\NekoVerse Companion\nekoverse.sqlite` on Windows. Existing v0.1.0 JSON settings are imported automatically.
+- **Automatic app update checker** – checks the latest GitHub Release shortly after startup and every 5 minutes while the app is running. A bottom-right card appears when a newer version is available and opens that release when clicked.
+- **Native Ollama** – defaults to `https://ollama.nekosunevr.co.uk` with `qwen2.5:3b`; model discovery uses `/api/tags` and chat uses `/api/chat`.
+- **Windows x64 + Linux AMD64 releases** – NSIS installer, portable EXE, AppImage, DEB and SHA-256 checksums.
 
-See **`docs/COMMANDS.md`** for the full command catalog and configuration examples.
+See [`CHANGELOG.md`](CHANGELOG.md) for the full v0.1.1 changelog.
 
-## Important fair-play boundary
+## Voice examples
 
-NekoVerse is a **companion/accessibility tool**, not a bot or cheat. Voice commands only trigger explicit user-configured key actions. It does not implement combat automation, autonomous navigation, unattended gameplay loops, aim/recoil assistance, memory/process injection, packet manipulation or anti-cheat bypasses. See `docs/SECURITY.md`.
+With the default strict wake-word setting enabled:
 
-## Marketplace warning
+```text
+Jarvis, request landing
+Jarvis, gear down
+Jarvis, headlights
+Jarvis, open the ramp
+Jarvis, remove my helmet
+Jarvis, call rescue
+Jarvis, where is New Babbage?
+Jarvis, where can I mine Titanium?
+Jarvis, shut up
+```
 
-Third-party pledge stores are a grey market. They are not CIG/RSI-supported purchases, and NekoVerse does **not** call a store “safe”. The app only searches public listings and opens the seller page. Confirm the exact pledge, insurance (including LTI), seller, escrow/refund rules and transfer yourself. See `docs/MARKETPLACE.md`.
+The assistant name can be changed in **Settings → Wake word / assistant name**. Users who prefer direct commands can disable strict wake-word mode in Settings.
+
+## Verse Guide
+
+The **Verse Guide** page is intended to help new players answer questions such as:
+
+- Where is New Babbage?
+- Where is GrimHEX?
+- Where can I find Titanium or Quantanium?
+- Where can I buy an item or component?
+- What planet/moon/station is a location on?
+
+Jarvis can use the same live Star Citizen Wiki API search data to ground its answers instead of relying only on the language model.
+
+## Automatic Star Citizen install detection
+
+The optimizer no longer guesses only a few fixed drive paths. It attempts, in order:
+
+1. A manual override if the user configured one.
+2. A running `StarCitizen.exe` process.
+3. RSI Launcher AppData/config/log hints.
+4. Windows registry/uninstall installation entries.
+5. Common Roberts Space Industries / game-library folders across mounted drive letters.
+6. Validation that the candidate actually contains Star Citizen channel data such as LIVE/PTU and game files.
+
+The graphics settings detector separately finds the newest Star Citizen graphics profile under `%LOCALAPPDATA%\Star Citizen\starcitizen_*\GraphicsSettings\GraphicsSettings.json`.
 
 ## Optimizer philosophy
 
-Star Citizen changes frequently, and aggressive “FPS tweak packs” can make a machine less stable. NekoVerse therefore uses a reversible approach:
+NekoVerse deliberately applies only conservative, reversible settings. It backs up `GraphicsSettings.json` before changing the renderer and avoids aggressive registry/service tweak packs or undocumented CVars.
 
-1. Detect hardware.
-2. Recommend renderer, upscaler, texture, cloud and resolution choices.
-3. If you click **Apply safe renderer profile**, back up `GraphicsSettings.json` and modify only the renderer field.
-4. Keep the rest as visible in-game recommendations rather than writing undocumented CVars.
-5. **Restore backup** puts the latest NekoVerse backup back in place.
+## Language and speech
 
-The UI also explains that Vulkan can improve CPU-side performance on suitable hardware while some current Star Citizen builds may exhibit Vulkan-specific severe FPS drops; in that case use the DirectX/D3D fallback.
+On first launch, NekoVerse asks for a language. It can be changed at any time in Settings.
 
-## Setup
+Supported UI/Jarvis language presets in v0.1.1:
 
-Requirements:
-- Windows 10/11 for System.Speech voice input/output and Windows hotkey output.
-- Linux AMD64 can run the desktop UI/build, while Windows-only voice/hotkey features gracefully remain unavailable there.
-- Node.js 22 for development/building.
-- Star Citizen installed only if you want optimizer/hotkey features.
+- English
+- Español
+- Deutsch
+- Polski
+- Русский
+- Français
+- Italiano
+- Português
 
-```bash
-npm install
-npm run dev
+On Windows, NekoVerse requests the selected System.Speech recognizer culture. If that Windows speech pack is unavailable, it falls back to the Windows default recognizer.
+
+## Application data
+
+NekoVerse stores its persistent application settings in SQLite:
+
+```text
+%APPDATA%\NekoVerse Companion\nekoverse.sqlite
 ```
 
-Build Windows x64 installer + portable executable:
+This includes language, onboarding state, wake-word configuration, hotkey mappings, Ollama settings and other app preferences. Existing `settings.json` data from v0.1.0 is imported automatically when v0.1.1 first starts.
 
-```bash
-npm run check
-npm run dist:win:x64
-```
+## Ollama
 
-Build Linux AMD64 AppImage + DEB:
-
-```bash
-npm run check
-npm run dist:linux:x64
-```
-
-Outputs are written to `release/`.
-
-## Configure voice commands
-
-Open **Settings → Star Citizen voice / hotkey commands** and make the hotkeys match your own Star Citizen keybinds. Blank bindings are disabled. Star Citizen allows custom keybinding profiles, so NekoVerse treats its included bindings as editable starting points rather than immutable game controls.
-
-Default wake words are `neko`, `nekoverse`, and `computer`.
-
-Examples:
-- **“Neko, request landing.”**
-- **“Neko, gear down.”**
-- **“Neko, headlights on.”**
-- **“Neko, open the ramp.”**
-- **“Neko, cruise control.”**
-- **“Neko, remove my helmet.”**
-- **“Neko, call rescue.”**
-
-## Neko AI / Ollama
-
-The assistant uses the **native Ollama API**, not OpenAI’s API and not an OpenAI compatibility layer.
-
-Default configuration:
+Default server/model:
 
 ```text
 Server: https://ollama.nekosunevr.co.uk
 Model:  qwen2.5:3b
 ```
 
-From **Settings → Neko AI — native Ollama**, click **Scan models**. NekoVerse calls `/api/tags` on the configured server and shows the available model names, parameter sizes, quantization levels, sizes and reported capabilities. Models that only expose embeddings remain visible but are disabled for assistant selection.
+The app can scan the configured server for currently available chat models and switch models in Settings. Embedding-only models are not offered as chat choices.
 
-Assistant conversations use `/api/chat` with streaming disabled so the desktop app receives a single JSON reply. No API key is required by the default NekoSuneVR endpoint.
+## Fair-play boundary
 
-## Data integrations
+NekoVerse is a companion/accessibility tool, not a cheat or autonomous game bot. Voice actions map to explicit user-configured one-shot/hold key actions. It does not implement aim assistance, combat automation, unattended navigation/play, memory/process injection, packet manipulation or anti-cheat bypasses.
 
-- NekoSuneVR Ollama – native `/api/tags` model discovery and `/api/chat` assistant responses.
-- RSI support / Star Citizen website – current channel status and original source links.
-- Star Citizen Wiki API – community API over RSI archive/game data. Public projects should credit the service and follow its terms.
-- FleetYards – public ship database/API.
-- Star Hangar, Space Foundry and The Impound – public third-party listing search only; no account or purchasing integration.
+## Marketplace warning
 
-NekoVerse caches no RSI login credentials and does not attempt to access private account data.
+Third-party pledge stores are a grey market and are not supported by CIG/RSI. NekoVerse only searches public listings and opens external result pages. Verify the item, insurance, seller, refund/escrow conditions and transfer yourself.
 
-## Repository / releases
+## Development
 
-The included workflow builds Windows x64 and Linux AMD64 on pushes/PRs and uploads workflow artifacts. Pushing a version tag also publishes a GitHub Release with generated changelog notes and SHA-256 checksums.
+Requirements:
+
+- Node.js 22
+- Windows 10/11 for built-in System.Speech voice/hotkey features
+- Linux AMD64 supported for the desktop UI and Linux package builds
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+npm install
+npm run check
+npm run dev
 ```
 
-The release tag is used as the package version during CI, so a tag such as `v0.2.0` produces `0.2.0` filenames even if the checked-in package version has not yet been bumped.
+Windows x64:
 
-`electron-builder` is explicitly run with `--publish never`; GitHub Release publishing is handled only by the final Actions release job. This avoids duplicate uploads and token errors during packaging.
-
-## Project layout
-
-```text
-NekoVerse-Companion/
-├─ electron/
-│  ├─ main.cjs
-│  ├─ preload.cjs
-│  └─ services/
-│     ├─ commands.cjs
-│     ├─ assistant.cjs
-│     ├─ ollama.cjs
-│     ├─ hotkeys.cjs
-│     └─ ...
-├─ src/
-│  ├─ App.jsx
-│  ├─ index.css
-│  └─ lib/api.js
-├─ docs/
-│  └─ COMMANDS.md
-├─ .github/
-│  ├─ workflows/build-release.yml
-│  └─ release.yml
-└─ package.json
+```bash
+npm run dist:win:x64
 ```
+
+Linux AMD64:
+
+```bash
+npm run dist:linux:x64
+```
+
+## Releases
+
+Normal `v*` tags build and publish releases. The workflow can also create a release from a commit whose message starts with `release-vX.Y.Z`, which is used when the connected GitHub tool cannot directly create a tag reference.
+
+The release job publishes:
+
+- Windows x64 NSIS installer
+- Windows x64 portable EXE
+- Linux AMD64 AppImage
+- Linux AMD64 DEB
+- `SHA256SUMS.txt`
+- Generated GitHub release notes
+
+`electron-builder` always runs with `--publish never`; only the final GitHub Actions release job performs publishing.
 
 ## Credits
 
