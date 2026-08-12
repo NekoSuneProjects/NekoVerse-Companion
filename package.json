@@ -1,7 +1,7 @@
 {
   "name": "nekoverse-companion",
-  "version": "0.1.2",
-  "description": "A modern Star Citizen companion by NekoSuneVR: multilingual Jarvis voice control, Verse Guide, UI shortcuts, FleetYards, marketplace search, updates, and hardware-aware optimisation.",
+  "version": "0.1.3",
+  "description": "A modern Star Citizen companion by NekoSuneVR: multilingual Jarvis voice control, continuous mic recognition, Verse Guide, UI and combat-mode shortcuts, updates, and hardware-aware optimisation.",
   "author": "NekoSuneVR",
   "license": "MIT",
   "main": "electron/main.cjs",
