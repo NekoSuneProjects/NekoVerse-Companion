@@ -9,7 +9,7 @@ const CULTURES = {
 };
 function normalizeCulture(value){return CULTURES[value]||'en-GB';}
 
-function speak(text, language='en-GB') {
+function speak(text, language = listenerCulture || 'en-GB') {
   if (process.platform !== 'win32') return Promise.resolve({ok:false,error:'Windows TTS is required for built-in voice output.'});
   const safe = String(text||'').replace(/'/g,"''").slice(0,1800);
   const culture = normalizeCulture(language).replace(/'/g,"''");
