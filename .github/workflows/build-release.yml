@@ -52,9 +52,19 @@ jobs:
           $version = ($version -split '\s')[0]
           npm version --no-git-tag-version --allow-same-version $version
 
-      - name: Install dependencies
+      - name: Install dependencies with retry
         shell: pwsh
-        run: npm install --no-audit --no-fund
+        run: |
+          $max = 3
+          for ($attempt = 1; $attempt -le $max; $attempt++) {
+            Write-Host "npm install attempt $attempt of $max"
+            npm install --no-audit --no-fund
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            if ($attempt -eq $max) { exit $LASTEXITCODE }
+            Write-Warning "Dependency/Electron download failed. Cleaning partial install and retrying..."
+            Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds (10 * $attempt)
+          }
 
       - name: Validate Electron services
         shell: pwsh
@@ -120,8 +130,20 @@ jobs:
           VERSION="${VERSION%% *}"
           npm version --no-git-tag-version --allow-same-version "$VERSION"
 
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
+      - name: Install dependencies with retry
+        shell: bash
+        run: |
+          set +e
+          for attempt in 1 2 3; do
+            echo "npm install attempt $attempt of 3"
+            npm install --no-audit --no-fund
+            code=$?
+            if [ "$code" -eq 0 ]; then exit 0; fi
+            if [ "$attempt" -eq 3 ]; then exit "$code"; fi
+            echo "Dependency/Electron download failed. Cleaning partial install and retrying..."
+            rm -rf node_modules
+            sleep $((attempt * 10))
+          done
 
       - name: Validate Electron services
         run: npm run check
@@ -220,6 +242,26 @@ jobs:
           } > release-notes.md
 
           cat release-notes.md
+
+      - name: Ensure release tag exists
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          if git show-ref --verify --quiet "refs/tags/$TAG"; then
+            existing="$(git rev-list -n 1 "$TAG")"
+            if [[ "$existing" != "$GITHUB_SHA" ]]; then
+              echo "Tag $TAG already exists at $existing, expected $GITHUB_SHA" >&2
+              exit 1
+            fi
+            echo "$TAG already points at this release commit."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" "$GITHUB_SHA" -m "NekoVerse Companion $TAG"
+            git push origin "refs/tags/$TAG"
+          fi
 
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
