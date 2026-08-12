@@ -1,0 +1,103 @@
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const path = require('node:path');
+const fs = require('node:fs');
+const { getStatus, getNews } = require('./services/starcitizen.cjs');
+const { searchModels } = require('./services/fleetyards.cjs');
+const { searchMarket } = require('./services/marketplace.cjs');
+const optimizer = require('./services/optimizer.cjs');
+const hotkeys = require('./services/hotkeys.cjs');
+const voice = require('./services/voice.cjs');
+const assistant = require('./services/assistant.cjs');
+
+let win;
+let settings = null;
+let lastOptimizer = null;
+
+const defaultSettings = {
+  wakeWords: ['neko', 'nekoverse', 'computer'],
+  requireWakeWord: true,
+  speakReplies: true,
+  customInstallPath: '',
+  commands: {
+    request_landing: { label: 'Request landing / ATC', combo: '' },
+    landing_gear: { label: 'Landing gear', combo: 'N' },
+    lights: { label: 'Ship lights', combo: 'L' },
+    doors: { label: 'Ship doors', combo: '' },
+    quantum: { label: 'Quantum mode', combo: 'B' }
+  },
+  ai: { enabled: false, baseUrl: 'http://127.0.0.1:1234/v1', apiKey: '', model: '' }
+};
+
+function settingsFile() { return path.join(app.getPath('userData'), 'settings.json'); }
+function loadSettings() {
+  try { settings = { ...defaultSettings, ...JSON.parse(fs.readFileSync(settingsFile(),'utf8')) }; }
+  catch { settings = structuredClone(defaultSettings); }
+  settings.commands = { ...defaultSettings.commands, ...(settings.commands || {}) };
+  settings.ai = { ...defaultSettings.ai, ...(settings.ai || {}) };
+  return settings;
+}
+function saveSettings(next) {
+  settings = { ...settings, ...next, commands:{...settings.commands,...(next.commands||{})}, ai:{...settings.ai,...(next.ai||{})} };
+  fs.mkdirSync(path.dirname(settingsFile()), {recursive:true});
+  fs.writeFileSync(settingsFile(), JSON.stringify(settings,null,2));
+  return settings;
+}
+
+function createWindow() {
+  win = new BrowserWindow({
+    width: 1500, height: 950, minWidth: 1120, minHeight: 720,
+    backgroundColor:'#07110d', title:'NekoVerse Companion',
+    webPreferences:{ preload:path.join(__dirname,'preload.cjs'), contextIsolation:true, nodeIntegration:false, sandbox:true }
+  });
+  const dev = process.env.VITE_DEV_SERVER_URL;
+  if (dev) win.loadURL(dev); else win.loadFile(path.join(__dirname,'..','dist','index.html'));
+  win.webContents.setWindowOpenHandler(({url}) => { if (/^https?:\/\//i.test(url)) shell.openExternal(url); return {action:'deny'}; });
+}
+
+async function runRecognized(text) {
+  if (!win || win.isDestroyed()) return;
+  const lower = text.toLowerCase();
+  const wake = (settings.wakeWords || []).find(w => lower.includes(String(w).toLowerCase()));
+  if (settings.requireWakeWord && !wake) return;
+  const escapedWake = wake ? String(wake).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+  const cleaned = wake ? text.replace(new RegExp(escapedWake,'i'),'').trim() : text;
+  const reply = await assistant.ask(cleaned || text, settings, { optimizer:lastOptimizer?.recommended });
+  let actionResult = null;
+  if (reply.intent && settings.commands?.[reply.intent]) actionResult = await hotkeys.runCommand(reply.intent, settings);
+  const payload = { recognized:text, command:cleaned, reply, actionResult };
+  win.webContents.send('voice:recognized', payload);
+  if (settings.speakReplies) voice.speak(actionResult?.error ? `${reply.text} ${actionResult.error}` : reply.text);
+}
+
+app.whenReady().then(() => {
+  loadSettings(); createWindow();
+  app.on('activate', () => { if (BrowserWindow.getAllWindows().length===0) createWindow(); });
+});
+app.on('window-all-closed', () => { voice.stop(); if (process.platform !== 'darwin') app.quit(); });
+
+ipcMain.handle('app:bootstrap', async () => {
+  const [status, news, opt] = await Promise.all([getStatus(), getNews(), optimizer.analyze(settings.customInstallPath)]);
+  lastOptimizer = opt;
+  return { status, news, optimizer:opt, settings, creator:assistant.CREATOR };
+});
+ipcMain.handle('sc:status', () => getStatus());
+ipcMain.handle('sc:news', () => getNews());
+ipcMain.handle('fleet:search', (_e,q) => searchModels(q));
+ipcMain.handle('market:search', (_e,p) => searchMarket(p));
+ipcMain.handle('optimizer:analyze', async () => { lastOptimizer = await optimizer.analyze(settings.customInstallPath); return lastOptimizer; });
+ipcMain.handle('optimizer:apply', (_e,p) => optimizer.apply(p));
+ipcMain.handle('optimizer:restore', () => optimizer.restore());
+ipcMain.handle('voice:speak', (_e,text) => voice.speak(text));
+ipcMain.handle('voice:start', () => voice.start(runRecognized));
+ipcMain.handle('voice:stop', () => voice.stop());
+ipcMain.handle('hotkey:run', (_e,cmd) => hotkeys.runCommand(cmd, settings));
+ipcMain.handle('assistant:ask', async (_e,msg) => {
+  const reply = await assistant.ask(msg, settings, { optimizer:lastOptimizer?.recommended });
+  let actionResult = null;
+  if (reply.intent && settings.commands?.[reply.intent]) actionResult = await hotkeys.runCommand(reply.intent, settings);
+  if (settings.speakReplies) voice.speak(actionResult?.error ? `${reply.text} ${actionResult.error}` : reply.text);
+  return { reply, actionResult };
+});
+ipcMain.handle('settings:get', () => settings);
+ipcMain.handle('settings:save', (_e,next) => saveSettings(next));
+ipcMain.handle('shell:open', async (_e,url) => { if (/^https?:\/\//i.test(url)) { await shell.openExternal(url); return true; } return false; });
