@@ -1,6 +1,43 @@
 # Changelog
 
-All notable NekoVerse Companion changes are documented here.
+All notable changes to **NekoVerse Companion** are documented here. Releases are maintained by [NekoSuneVR](https://github.com/NekoSuneVR).
+
+## 0.1.2 — Release Notes & Star Citizen UI Shortcuts
+
+### Added
+
+- **Expanded Jarvis / AI UI shortcuts** for Star Citizen interface screens.
+  - `Jarvis, open mobiGlas` → mobiGlas (`F1` default).
+  - `Jarvis, open map` / `open starmap` → Starmap (`F2` default).
+  - `Jarvis, open comms` / `open contacts` → Comms (`F11` default).
+  - `Jarvis, open contracts` / `open missions` → Contracts Manager command slot.
+  - `Jarvis, open inventory` → Personal Inventory (`I` default).
+  - `Jarvis, open chat` → Text Chat (`ENTER` default).
+  - New user-bindable Journal and Vehicle Manager / Vehicle Loadout command slots.
+- **Multilingual aliases for the new UI shortcuts** across Spanish, German, Polish, Russian, French, Italian and Portuguese.
+- **Safer blank defaults for UI pages without a dependable direct key.** Contracts, Journal and Vehicle Manager remain configurable rather than pretending another key opens the exact requested page.
+
+### Fixed
+
+- **GitHub Release changelog formatting.** Releases no longer rely on the sparse GitHub-generated body that could produce duplicate or unhelpful `Full Changelog` text.
+- Release publishing now extracts the matching version section directly from this `CHANGELOG.md`.
+- Each release adds exactly **one** compare link in the form `vPrevious...vCurrent`.
+- Release notes explicitly credit [NekoSuneVR](https://github.com/NekoSuneVR) while still using GitHub Actions for token-free automated publishing.
+- Release workflow concurrency now gives release commits/tags their own group so a later normal `main` push cannot cancel an active release publication.
+
+### Changed
+
+- App version bumped to **0.1.2**.
+- `mobiGlas`, Starmap, Comms, Contracts, Inventory, Text Chat, Journal and Vehicle Manager commands are grouped together as **mobiGlas & UI** in Settings.
+- `open map` and similar shorter natural phrases now map directly to the Starmap shortcut.
+
+### Build targets
+
+- Windows x64 NSIS installer
+- Windows x64 portable EXE
+- Linux AMD64 AppImage
+- Linux AMD64 DEB
+- SHA-256 release checksums
 
 ## 0.1.1 — Jarvis, Verse Guide & Update System
 
@@ -41,22 +78,21 @@ All notable NekoVerse Companion changes are documented here.
   - `%APPDATA%\NekoVerse Companion\nekoverse.sqlite` on Windows.
   - The platform Electron user-data directory on other systems.
   - Existing v0.1.0 `settings.json` data is imported automatically on first launch of v0.1.1.
-- **Improved automatic Star Citizen install discovery.** Detection now considers:
-  - A user override, if configured.
-  - A running `StarCitizen.exe` process.
-  - RSI Launcher AppData configuration/log hints.
-  - Windows uninstall/installation registry entries.
-  - Program Files / Roberts Space Industries locations.
-  - Common game/library folders across mounted Windows drive letters.
-  - Candidate locations are verified by real Star Citizen channel contents before use.
+- **Improved automatic Star Citizen install discovery.** Detection checks a user override, a running `StarCitizen.exe`, RSI Launcher AppData hints, Windows registry entries and common game-library locations across mounted drives, then verifies real channel/game files before accepting the path.
+- **Native NekoSuneVR Ollama assistant configuration** with default server `https://ollama.nekosunevr.co.uk`, default model `qwen2.5:3b`, model discovery through `/api/tags`, and chat through Ollama's native `/api/chat` endpoint.
+
+### Fixed
+
+- `npm version --no-git-tag-version` release stamping now allows the same version, preventing the `Version not changed` failure when the checked-in package version already matches the release version.
+- Electron Builder is run with `--publish never`, preventing `GH_TOKEN` / GitHub Personal Access Token errors during package generation.
+- Release uploads are handled only by the final GitHub Actions release job.
 
 ### Changed
 
 - App version bumped to **0.1.1**.
 - Old default wake words (`neko`, `nekoverse`, `computer`) migrate to **Jarvis**.
-- Voice commands now default to strict wake-word mode, so examples become `Jarvis, request landing`, `Jarvis, gear down`, etc. Users can disable strict mode in Settings if desired.
-- Ollama remains native and defaults to `https://ollama.nekosunevr.co.uk` with `qwen2.5:3b`.
-- Release workflow now accepts generic `release-vX.Y.Z` release commits as well as ordinary `v*` tags.
+- Voice commands default to strict wake-word mode, so examples become `Jarvis, request landing`, `Jarvis, gear down`, etc. Users can disable strict mode in Settings if desired.
+- Release workflow accepts generic `release-vX.Y.Z` release commits as well as ordinary `v*` tags.
 
 ### Build targets
 
@@ -65,3 +101,40 @@ All notable NekoVerse Companion changes are documented here.
 - Linux AMD64 AppImage
 - Linux AMD64 DEB
 - SHA-256 release checksums
+
+## 0.1.0 — First Public MVP
+
+### Added
+
+- First public **NekoVerse Companion** desktop release created by NekoSuneVR.
+- Electron + React + Tailwind desktop UI with dark green Star Citizen-inspired HUD styling.
+- Star Citizen LIVE/PTU status panel and Comm-Link/news integration.
+- Initial Windows voice recognition and text-to-speech support using `System.Speech`.
+- Initial assistant intent system with creator attribution and command recognition.
+- First flight utility commands including:
+  - Request landing / ATC.
+  - Landing gear.
+  - Exterior/head lights.
+  - Doors.
+  - NAV / Quantum mode.
+- Expanded flight, vehicle, medical/SOS, on-foot and configurable hotkey catalog added during the initial 0.1.0 development cycle.
+- FleetYards ship database search.
+- Public third-party marketplace searching for Star Hangar, Space Foundry and The Impound, including an LTI text filter and grey-market warning.
+- Hardware detection for CPU, GPU, RAM and VRAM.
+- Conservative Star Citizen optimizer recommendations with `GraphicsSettings.json` backup/restore and safe renderer switching.
+- Windows x64 NSIS installer and portable EXE packaging.
+- Linux AMD64 AppImage and DEB packaging.
+- GitHub Actions artifact builds and automated GitHub Release publishing.
+- NekoVerse application icon/branding and creator credit for NekoSuneVR.
+
+### Safety / scope
+
+- Voice/hotkey actions are explicit one-shot or user-configured hold actions.
+- No autonomous navigation, combat automation, aim/recoil assistance, process/memory injection, packet manipulation or anti-cheat bypass behavior.
+
+### Build targets
+
+- Windows x64 NSIS installer
+- Windows x64 portable EXE
+- Linux AMD64 AppImage
+- Linux AMD64 DEB
