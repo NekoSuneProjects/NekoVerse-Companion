@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const { getStatus, getNews } = require('./services/starcitizen.cjs');
 const { searchModels } = require('./services/fleetyards.cjs');
 const { searchMarket } = require('./services/marketplace.cjs');
+const { buildDefaultCommands } = require('./services/commands.cjs');
 const optimizer = require('./services/optimizer.cjs');
 const hotkeys = require('./services/hotkeys.cjs');
 const voice = require('./services/voice.cjs');
@@ -18,13 +19,7 @@ const defaultSettings = {
   requireWakeWord: true,
   speakReplies: true,
   customInstallPath: '',
-  commands: {
-    request_landing: { label: 'Request landing / ATC', combo: '' },
-    landing_gear: { label: 'Landing gear', combo: 'N' },
-    lights: { label: 'Ship lights', combo: 'L' },
-    doors: { label: 'Ship doors', combo: '' },
-    quantum: { label: 'Quantum mode', combo: 'B' }
-  },
+  commands: buildDefaultCommands(),
   ai: { enabled: false, baseUrl: 'http://127.0.0.1:1234/v1', apiKey: '', model: '' }
 };
 
@@ -33,6 +28,9 @@ function loadSettings() {
   try { settings = { ...defaultSettings, ...JSON.parse(fs.readFileSync(settingsFile(),'utf8')) }; }
   catch { settings = structuredClone(defaultSettings); }
   settings.commands = { ...defaultSettings.commands, ...(settings.commands || {}) };
+  for (const [id, defaults] of Object.entries(defaultSettings.commands)) {
+    settings.commands[id] = { ...defaults, ...(settings.commands[id] || {}) };
+  }
   settings.ai = { ...defaultSettings.ai, ...(settings.ai || {}) };
   return settings;
 }
