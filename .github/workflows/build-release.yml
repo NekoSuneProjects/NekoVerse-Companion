@@ -64,7 +64,17 @@ jobs:
         shell: pwsh
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npm run dist:win:x64
+        run: |
+          $max = 3
+          for ($attempt = 1; $attempt -le $max; $attempt++) {
+            Write-Host "electron-builder attempt $attempt of $max"
+            npm run dist:win:x64
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            if ($attempt -eq $max) { exit $LASTEXITCODE }
+            Write-Warning "Build failed, likely a transient builder binary/CDN error. Retrying..."
+            Remove-Item -Recurse -Force release -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds (10 * $attempt)
+          }
 
       - name: Show Windows outputs
         shell: pwsh
@@ -119,7 +129,19 @@ jobs:
       - name: Build Linux AMD64 packages
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npm run dist:linux:x64
+        shell: bash
+        run: |
+          set +e
+          for attempt in 1 2 3; do
+            echo "electron-builder attempt $attempt of 3"
+            npm run dist:linux:x64
+            code=$?
+            if [ "$code" -eq 0 ]; then exit 0; fi
+            if [ "$attempt" -eq 3 ]; then exit "$code"; fi
+            echo "Build failed, likely a transient builder binary/CDN error. Retrying..."
+            rm -rf release
+            sleep $((attempt * 10))
+          done
 
       - name: Show Linux outputs
         run: ls -lah release/
