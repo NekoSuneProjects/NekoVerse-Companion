@@ -43,7 +43,8 @@ function stopSpeaking(){
 function playWakeSound(){
   if(process.platform!=='win32')return Promise.resolve({ok:false,error:'Wake sound currently uses Windows audio.'});
   return new Promise(resolve=>{
-    execFile('powershell.exe',['-NoProfile','-NonInteractive','-Command',`[console]::Beep(880,100); Start-Sleep -Milliseconds 35; [console]::Beep(1175,95)`],{windowsHide:true},err=>resolve(err?{ok:false,error:err.message}:{ok:true}));
+    const script="[System.Media.SystemSounds]::Asterisk.Play(); Start-Sleep -Milliseconds 100; [System.Media.SystemSounds]::Beep.Play()";
+    execFile('powershell.exe',['-NoProfile','-NonInteractive','-Command',script],{windowsHide:true},err=>resolve(err?{ok:false,error:err.message}:{ok:true}));
   });
 }
 
