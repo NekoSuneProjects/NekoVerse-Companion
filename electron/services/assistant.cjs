@@ -1,5 +1,6 @@
 const CREATOR = 'NekoSuneVR';
 const { commandCatalog, detectCommandIntent, commandLabel } = require('./commands.cjs');
+const { detectLocalizedCommandIntent } = require('./command-locales.cjs');
 const ollama = require('./ollama.cjs');
 const wiki = require('./wiki.cjs');
 
@@ -10,7 +11,7 @@ const LANGUAGE_NAMES = {
 };
 
 function detectIntent(text) {
-  const command = detectCommandIntent(text);
+  const command = detectCommandIntent(text) || detectLocalizedCommandIntent(text);
   if (command) return command;
   if (/who (made|created|built) (you|this|the tool)|who is (the )?creator/i.test(text)) return 'creator';
   if (/optimi[sz]e|performance profile|my hardware/i.test(text)) return 'optimizer';
