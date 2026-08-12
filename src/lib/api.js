@@ -15,6 +15,7 @@ export const api = {
   stopSpeaking: () => bridge?.stopSpeaking?.(),
   voiceStart: () => bridge?.voiceStart?.(),
   voiceStop: () => bridge?.voiceStop?.(),
+  voiceStatus: () => bridge?.voiceStatus?.(),
   hotkeyRun: (command) => bridge?.hotkeyRun?.(command),
   assistantAsk: (message) => bridge?.assistantAsk?.(message),
   listOllamaModels: (baseUrl) => bridge?.listOllamaModels?.(baseUrl),
@@ -24,5 +25,6 @@ export const api = {
   openExternal: (url) => bridge?.openExternal?.(url),
   onVoice: (fn) => bridge?.onVoice?.(fn),
   onWake: (fn) => bridge?.onWake?.(fn),
+  onVoiceStatus: (fn) => bridge?.onVoiceStatus?.(fn),
   onUpdateAvailable: (fn) => bridge?.onUpdateAvailable?.(fn)
 };
