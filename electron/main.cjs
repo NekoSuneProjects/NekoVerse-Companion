@@ -5,6 +5,7 @@ const { getStatus, getNews } = require('./services/starcitizen.cjs');
 const { searchModels } = require('./services/fleetyards.cjs');
 const { searchMarket } = require('./services/marketplace.cjs');
 const { buildDefaultCommands } = require('./services/commands.cjs');
+const { buildCombatExtraCommands } = require('./services/combat-extra.cjs');
 const optimizer = require('./services/optimizer.cjs');
 const hotkeys = require('./services/hotkeys.cjs');
 const voice = require('./services/voice.cjs');
@@ -42,7 +43,7 @@ const defaultSettings = {
   requireWakeWord: true,
   speakReplies: true,
   customInstallPath: '',
-  commands: buildDefaultCommands(),
+  commands: { ...buildDefaultCommands(), ...buildCombatExtraCommands() },
   ollama: {
     baseUrl: ollama.DEFAULT_BASE_URL,
     model: ollama.DEFAULT_MODEL
@@ -169,8 +170,6 @@ function findWakeWord(text) {
   const exact = wakeWords.find(w => lower.includes(String(w).toLowerCase()));
   if (exact) return { configured:exact, heard:exact, fuzzy:false };
 
-  // System.Speech commonly varies a single vowel/consonant in proper names.
-  // Allow only a one-character difference for wake names of 5+ characters.
   const heardTokens = original.split(/[\s,.:;!?\-]+/).map(speechToken).filter(Boolean);
   for (const configured of wakeWords) {
     const target = speechToken(configured);
