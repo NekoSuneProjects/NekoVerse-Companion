@@ -15,27 +15,55 @@ const KEY = {
 for (let i=0;i<=9;i++) KEY[String(i)] = 0x30+i;
 for (let i=0;i<26;i++) KEY[String.fromCharCode(65+i)] = 0x41+i;
 
+const MOUSE = {
+  MOUSE1:{down:0x0002,up:0x0004,data:0}, LEFTMOUSE:{down:0x0002,up:0x0004,data:0}, LMB:{down:0x0002,up:0x0004,data:0},
+  MOUSE2:{down:0x0008,up:0x0010,data:0}, RIGHTMOUSE:{down:0x0008,up:0x0010,data:0}, RMB:{down:0x0008,up:0x0010,data:0},
+  MOUSE3:{down:0x0020,up:0x0040,data:0}, MIDDLEMOUSE:{down:0x0020,up:0x0040,data:0}, MMB:{down:0x0020,up:0x0040,data:0},
+  MOUSE4:{down:0x0080,up:0x0100,data:1}, XBUTTON1:{down:0x0080,up:0x0100,data:1},
+  MOUSE5:{down:0x0080,up:0x0100,data:2}, XBUTTON2:{down:0x0080,up:0x0100,data:2}
+};
+
+function tokens(combo='') {
+  return String(combo).split('+').map(x => x.trim().toUpperCase()).filter(Boolean);
+}
+
 function parseCombo(combo='') {
-  return combo.split('+').map(x => x.trim().toUpperCase()).filter(Boolean).map(k => KEY[k]).filter(Number.isFinite);
+  return tokens(combo).map(k => KEY[k]).filter(Number.isFinite);
+}
+
+function parseMouse(combo='') {
+  const mouseToken = tokens(combo).find(k => MOUSE[k] || k === 'WHEELUP' || k === 'WHEELDOWN');
+  if (!mouseToken) return null;
+  if (mouseToken === 'WHEELUP') return { wheel:120 };
+  if (mouseToken === 'WHEELDOWN') return { wheel:-120 };
+  return MOUSE[mouseToken];
 }
 
 async function sendCombo(combo, options = {}) {
   if (process.platform !== 'win32') return { ok: false, error: 'Hotkey output is Windows-only.' };
   const keys = parseCombo(combo);
-  if (!keys.length) return { ok: false, error: `No valid keys in “${combo}”. Configure the command in Settings.` };
+  const mouse = parseMouse(combo);
+  if (!keys.length && !mouse) return { ok: false, error: `No valid keys or mouse buttons in “${combo}”. Configure the command in Settings.` };
 
   const holdMs = Math.max(35, Math.min(10000, Number(options.holdMs || 45)));
   const arr = keys.join(',');
+  const mouseDown = mouse?.down ?? 0;
+  const mouseUp = mouse?.up ?? 0;
+  const mouseData = mouse?.data ?? 0;
+  const wheel = mouse?.wheel ?? 0;
   const script = `
-$src=@'\nusing System; using System.Runtime.InteropServices; public static class NVK { [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo); }\n'@;
+$src=@'\nusing System; using System.Runtime.InteropServices; public static class NVK { [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo); [DllImport("user32.dll")] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo); }\n'@;
 Add-Type $src -ErrorAction SilentlyContinue;
 $keys=@(${arr});
 foreach($k in $keys){[NVK]::keybd_event([byte]$k,0,0,[UIntPtr]::Zero)};
+if(${wheel} -ne 0){[NVK]::mouse_event(0x0800,0,0,[uint32]([int32]${wheel}),[UIntPtr]::Zero)}
+elseif(${mouseDown} -ne 0){[NVK]::mouse_event([uint32]${mouseDown},0,0,[uint32]${mouseData},[UIntPtr]::Zero)};
 Start-Sleep -Milliseconds ${holdMs};
+if(${mouseUp} -ne 0){[NVK]::mouse_event([uint32]${mouseUp},0,0,[uint32]${mouseData},[UIntPtr]::Zero)};
 [array]::Reverse($keys);
 foreach($k in $keys){[NVK]::keybd_event([byte]$k,0,2,[UIntPtr]::Zero)}
 `;
-  try { await ps(script); return { ok: true, combo, holdMs }; } catch (e) { return { ok: false, error: e.message }; }
+  try { await ps(script); return { ok: true, combo, holdMs, mouse:Boolean(mouse) }; } catch (e) { return { ok: false, error: e.message }; }
 }
 
 async function runCommand(command, settings) {
@@ -46,4 +74,4 @@ async function runCommand(command, settings) {
   return sendCombo(combo, { holdMs });
 }
 
-module.exports = { sendCombo, runCommand, parseCombo };
+module.exports = { sendCombo, runCommand, parseCombo, parseMouse };
