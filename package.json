@@ -1,7 +1,7 @@
 {
   "name": "nekoverse-companion",
-  "version": "0.1.0",
-  "description": "A modern Star Citizen companion by NekoSuneVR: live/PTU status, news, voice commands, FleetYards, marketplace search, and conservative hardware-aware optimisation.",
+  "version": "0.1.1",
+  "description": "A modern Star Citizen companion by NekoSuneVR: live/PTU status, multilingual Jarvis voice control, Verse Guide, FleetYards, marketplace search, updates, and hardware-aware optimisation.",
   "author": "NekoSuneVR",
   "license": "MIT",
   "main": "electron/main.cjs",
@@ -15,12 +15,13 @@
     "dist:win:x64": "npm run build && electron-builder --win nsis portable --x64 --publish never",
     "dist:linux:x64": "npm run build && electron-builder --linux AppImage deb --x64 --publish never",
     "dist:dir": "npm run build && electron-builder --win --x64 --dir --publish never",
-    "check": "node --check electron/main.cjs && node --check electron/preload.cjs && node --check electron/services/commands.cjs && node --check electron/services/ollama.cjs && node --check electron/services/system.cjs && node --check electron/services/starcitizen.cjs && node --check electron/services/fleetyards.cjs && node --check electron/services/marketplace.cjs && node --check electron/services/optimizer.cjs && node --check electron/services/hotkeys.cjs && node --check electron/services/voice.cjs && node --check electron/services/assistant.cjs"
+    "check": "node --check electron/main.cjs && node --check electron/preload.cjs && node --check electron/services/commands.cjs && node --check electron/services/ollama.cjs && node --check electron/services/wiki.cjs && node --check electron/services/updates.cjs && node --check electron/services/storage.cjs && node --check electron/services/system.cjs && node --check electron/services/starcitizen.cjs && node --check electron/services/fleetyards.cjs && node --check electron/services/marketplace.cjs && node --check electron/services/optimizer.cjs && node --check electron/services/hotkeys.cjs && node --check electron/services/voice.cjs && node --check electron/services/assistant.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "sql.js": "^1.13.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
@@ -44,11 +45,11 @@
       "electron/**/*",
       "package.json"
     ],
+    "asarUnpack": [
+      "node_modules/sql.js/dist/sql-wasm.wasm"
+    ],
     "win": {
-      "target": [
-        "nsis",
-        "portable"
-      ],
+      "target": ["nsis", "portable"],
       "icon": "build/icon.ico"
     },
     "nsis": {
@@ -62,10 +63,7 @@
       "artifactName": "NekoVerse-Companion-Portable-${version}-win-${arch}.${ext}"
     },
     "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
+      "target": ["AppImage", "deb"],
       "icon": "build/icon.png",
       "category": "Utility",
       "maintainer": "NekoSuneVR",
