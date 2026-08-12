@@ -6,10 +6,12 @@ contextBridge.exposeInMainWorld('nekoVerse', {
   refreshNews: () => ipcRenderer.invoke('sc:news'),
   searchFleet: (query) => ipcRenderer.invoke('fleet:search', query),
   searchMarket: (payload) => ipcRenderer.invoke('market:search', payload),
+  searchVerse: (query) => ipcRenderer.invoke('wiki:search', query),
   analyzeHardware: () => ipcRenderer.invoke('optimizer:analyze'),
   applyOptimization: (profile) => ipcRenderer.invoke('optimizer:apply', profile),
   restoreOptimization: () => ipcRenderer.invoke('optimizer:restore'),
   speak: (text) => ipcRenderer.invoke('voice:speak', text),
+  stopSpeaking: () => ipcRenderer.invoke('voice:stop-speaking'),
   voiceStart: () => ipcRenderer.invoke('voice:start'),
   voiceStop: () => ipcRenderer.invoke('voice:stop'),
   hotkeyRun: (command) => ipcRenderer.invoke('hotkey:run', command),
@@ -23,6 +25,11 @@ contextBridge.exposeInMainWorld('nekoVerse', {
     const listener = (_event, payload) => callback(payload);
     ipcRenderer.on('voice:recognized', listener);
     return () => ipcRenderer.removeListener('voice:recognized', listener);
+  },
+  onWake: (callback) => {
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on('voice:wake', listener);
+    return () => ipcRenderer.removeListener('voice:wake', listener);
   },
   onUpdateAvailable: (callback) => {
     const listener = (_event, payload) => callback(payload);
