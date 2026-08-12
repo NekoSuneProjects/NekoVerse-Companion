@@ -8,7 +8,7 @@ NekoVerse maps spoken/typed phrases to **user-configured Star Citizen hotkeys**.
 2. Start the voice listener.
 3. Say the configured wake name. The default is `Jarvis`.
 4. After the confirmation tone, say the command. You can also say the wake name and command in one phrase.
-5. NekoVerse sends one configured keyboard action to Windows.
+5. NekoVerse sends one configured keyboard/mouse action to Windows.
 
 Examples:
 
@@ -20,14 +20,33 @@ Examples:
 - `Jarvis, open map`
 - `Jarvis, open comms`
 - `Jarvis, open contracts`
-- `Jarvis, open inventory`
-- `Jarvis, open chat`
-- `Jarvis, cruise control`
+- `Jarvis, lock on`
+- `Jarvis, next hostile`
+- `Jarvis, missile operator mode`
+- `Jarvis, fire`
+- `Jarvis, deploy decoy`
+- `Jarvis, power to shields`
 - `Jarvis, remove my helmet`
 - `Jarvis, call rescue`
 - `Jarvis, send SOS`
 
 The wake name is customizable. Strict wake-word mode is enabled by default.
+
+## Microphone behavior in v0.1.3
+
+NekoVerse now uses **continuous Windows System.Speech recognition** instead of repeatedly opening short recognition windows. This removes the old gaps where a short wake phrase such as `Jarvis` could be missed.
+
+The built-in listener uses the **Windows default recording device**. When the listener is running, a small live microphone HUD shows:
+
+- microphone input level
+- recognizer language/culture
+- partial text Windows thinks it hears
+- final recognition confidence
+- whether a fallback speech culture was used
+- wake-word match status
+- recognition errors
+
+If the level meter does not move when you speak, change the Windows default input device to the microphone you actually use, then restart the listener.
 
 ## Current command groups
 
@@ -39,6 +58,7 @@ The wake name is customizable. Strict wake-word mode is enabled by default.
 - VTOL toggle
 - Precision mode toggle
 - Gravity compensation toggle
+- Auto-land hold action
 
 ### Ship Systems
 
@@ -60,12 +80,80 @@ The wake name is customizable. Strict wake-word mode is enabled by default.
 
 ### Navigation
 
-- NAV / Quantum mode
-- Quantum engage
+- SCM / NAV Master Mode toggle
+- Quantum engage / Quantum Travel hold action
+
+Current phrases include:
+
+```text
+Jarvis, nav mode
+Jarvis, switch to SCM
+Jarvis, quantum jump
+Jarvis, engage quantum
+```
+
+### Combat & Operator Modes
+
+v0.1.3 adds explicit mode-selection shortcuts:
+
+- SCM / NAV Master Mode
+- Cycle Operator Mode
+- GUN mode command slot
+- Missile mode command slot
+- Scan operator mode command slot
+- Missile Operator Mode toggle
+- Gimbal mode
+- Precision targeting mode
+
+`Cycle Operator Mode` defaults to `MOUSE3`. Direct GUN/MISSILE/SCAN command slots can remain blank if the player has not assigned a dependable direct key in their own Star Citizen profile.
+
+### Weapons & Missiles
+
+- Fire once / weapon group 1 / launch missile input — `MOUSE1`
+- Fire weapon group 2 / secondary input — `MOUSE2`
+- Weapon group 1/2/3 selection slots
+- Next weapon group
+- Missile type next/previous
+- Increase armed missile count — `G`
+- Reset armed missile count — `LALT+G`
+
+`Jarvis, fire` sends **one** primary-fire mouse input. NekoVerse does not run a timed rapid-fire loop. In Star Citizen modes where the primary input launches a missile, it remains one explicit launch input; in gun mode it remains one short user-triggered input.
+
+### Targeting & Defense
+
+- Lock / unlock selected target — `F8`
+- Cycle next hostile — `5`
+- Target under reticle command slot
+- Target nearest hostile command slot
+- Next/previous hostile target command slots
+- Clear target command slot
+- Deploy decoy — `H`
+- Deploy noise — `J`
+
+Examples:
+
+```text
+Jarvis, lock on
+Jarvis, lock target
+Jarvis, next hostile
+Jarvis, deploy decoy
+Jarvis, deploy noise
+```
+
+NekoVerse sends the selected targeting key once. It does not automatically follow a target or keep reacquiring targets without another user command.
+
+### Power Management
+
+- Raise power to weapons — `F5`
+- Raise power to thrusters/engines — `F6`
+- Raise power to shields — `F7`
+- Reset power distribution — `F8`
+
+These controls are context-sensitive inside Star Citizen, so a key can legitimately have a different function in a different control context.
 
 ### mobiGlas & UI
 
-NekoVerse v0.1.2 adds explicit AI/voice shortcuts for Star Citizen interface screens:
+NekoVerse v0.1.2 added explicit AI/voice shortcuts for Star Citizen interface screens:
 
 - **mobiGlas** — default `F1`
 - **Starmap / Map** — default `F2`; accepts phrases such as `open map`, `show map`, and `open starmap`
@@ -132,7 +220,7 @@ The Rescue Beacon command is configured as a **hold action** because it may requ
 
 ## Default bindings included
 
-Every entry can be changed or blanked in Settings. NekoVerse avoids inventing direct keys for UI screens where a dependable direct binding is not available.
+Every entry can be changed or blanked in Settings. Star Citizen supports custom profiles, so defaults should be treated as a starting point and matched to the player's actual controls.
 
 - Request landing/takeoff: `LALT+N`
 - Request docking/undocking: `RALT+N`
@@ -141,7 +229,21 @@ Every entry can be changed or blanked in Settings. NekoVerse avoids inventing di
 - Ship power: `U`
 - Weapon-system power: `P`
 - Exterior/head lights: `L`
-- NAV/Quantum mode: `B`
+- SCM/NAV mode: `B`
+- Quantum Travel: hold `B`
+- Lock/unlock selected target: `F8`
+- Cycle hostile target: `5`
+- Fire once / primary: `MOUSE1`
+- Secondary / missile-type input: `MOUSE2`
+- Missile Operator Mode / operator cycle: `MOUSE3`
+- Increase armed missiles: `G`
+- Reset armed missiles: `LALT+G`
+- Decoy: `H`
+- Noise: `J`
+- Power weapons: `F5`
+- Power engines/thrusters: `F6`
+- Power shields: `F7`
+- Power reset: `F8`
 - mobiGlas: `F1`
 - Starmap / Map: `F2`
 - Comms / Contacts: `F11`
@@ -154,11 +256,11 @@ Every entry can be changed or blanked in Settings. NekoVerse avoids inventing di
 - Interaction mode: `F`
 - Rescue Beacon: hold `M`
 
-Star Citizen bindings change over time and can be customized by the player. Treat these defaults as a starting point and match NekoVerse to your actual in-game profile.
+Star Citizen bindings can change over time and can be customized by the player. CIG's own keybinding settings remain the source of truth for a particular installation/profile.
 
 ## Multilingual commands
 
-Common commands and UI shortcuts have localized aliases for the app's supported language presets, including English, Spanish, German, Polish, Russian, French, Italian and Portuguese. The underlying command ID remains the same, so all languages use the user's configured hotkey.
+Common commands and UI shortcuts have localized aliases for the app's supported language presets, including English, Spanish, German, Polish, Russian, French, Italian and Portuguese. v0.1.3 also includes localized variants for core lock/fire/operator-mode phrases.
 
 ## Hold actions
 
@@ -172,9 +274,9 @@ Each command can contain:
 }
 ```
 
-The Windows hotkey engine supports hold durations from 35 ms up to 10 seconds. This is intended for explicit actions such as a rescue beacon or push-to-talk, not unattended gameplay loops.
+The Windows hotkey engine supports hold durations from 35 ms up to 10 seconds. Hold actions are intended for explicit utility controls such as rescue, push-to-talk, quantum engagement or auto-land—not unattended combat firing loops.
 
-## Supported key names
+## Supported key and mouse names
 
 - `A-Z`
 - `0-9`
@@ -187,6 +289,11 @@ The Windows hotkey engine supports hold durations from 35 ms up to 10 seconds. T
 - `HOME`, `END`, `PAGEUP`, `PAGEDOWN`
 - `LEFT`, `RIGHT`, `UP`, `DOWN`
 - `NUM0-NUM9`, `MULTIPLY`, `ADD`, `SUBTRACT`, `DECIMAL`, `DIVIDE`
+- `MOUSE1`, `LEFTMOUSE`, `LMB`
+- `MOUSE2`, `RIGHTMOUSE`, `RMB`
+- `MOUSE3`, `MIDDLEMOUSE`, `MMB`
+- `MOUSE4`, `MOUSE5`
+- `WHEELUP`, `WHEELDOWN`
 
 Use `+` to form combinations, for example `LALT+N` or `CTRL+SHIFT+F7`.
 
@@ -195,12 +302,13 @@ Use `+` to form combinations, for example `LALT+N` or `CTRL+SHIFT+F7`.
 NekoVerse intentionally does **not** provide:
 
 - aim or recoil assistance
-- automatic firing or targeting
-- combat rotations
+- automatic or timed rapid-fire loops
+- autonomous target following/reacquisition
+- combat rotations or unattended combat
 - autonomous travel/navigation
 - automated trade/mining/salvage loops
 - memory/process injection
 - packet manipulation
 - anti-cheat bypasses
 
-The goal is fast voice-access to controls you could already press yourself.
+The goal is fast voice-access to controls the player could already press themselves.
