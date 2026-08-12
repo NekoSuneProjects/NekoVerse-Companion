@@ -2,6 +2,84 @@
 
 All notable changes to **NekoVerse Companion** are documented here. Releases are maintained by [NekoSuneVR](https://github.com/NekoSuneVR).
 
+## 0.1.3 — Microphone Reliability, Targeting & Combat Controls
+
+### Added
+
+- **Continuous Windows speech recognition** for the Jarvis listener.
+  - Replaces the old repeating 3-second `Recognize()` loop that could leave short gaps and miss a fast wake word.
+  - Uses asynchronous continuous recognition against the current Windows default recording device.
+  - Emits microphone level, partial speech hypotheses, final recognized text, confidence, selected recognizer culture, fallback state and recognizer errors to the Electron renderer bridge.
+- **More tolerant Jarvis wake matching.** Wake names of at least five characters can accept a one-character speech-recognition variation such as a nearby vowel/consonant result while still requiring an explicit wake word in strict mode.
+- **Expanded mouse-output support** in the Windows hotkey engine:
+  - Left mouse / `MOUSE1`
+  - Right mouse / `MOUSE2`
+  - Middle mouse / `MOUSE3`
+  - Mouse buttons 4/5
+  - Mouse wheel up/down
+- **Combat & Operator Modes** command group with configurable voice actions for:
+  - SCM / NAV Master Mode
+  - Operator-mode cycling
+  - GUN mode
+  - Missile mode
+  - Scan operator mode
+  - Gimbal mode
+  - Precision targeting
+- **Weapons & Missiles** command group with configurable shortcuts for:
+  - Weapon groups 1/2/3
+  - Next weapon group
+  - Missile type next/previous
+  - Armed missile count up/down/reset
+- **Targeting & Defense** command group with configurable shortcuts for:
+  - Lock / unlock the selected target
+  - Cycle the next hostile target
+  - Target under reticle / nearest hostile / hostile cycling slots
+  - Clear target
+  - Decoy and noise countermeasures
+- **Power Management** shortcuts for weapon, engine/thruster and shield power priority plus reset.
+- **Explicit one-shot `fire` command.** `Jarvis, fire` sends one primary-fire input (`MOUSE1`). In a mode where Star Citizen maps that input to missile launch, it remains one explicit launch input; in gun mode it remains one short user-triggered input rather than a timed firing loop.
+- **Explicit one-shot secondary-fire command** mapped to `MOUSE2` by default.
+- **Current control-reference defaults** added where a recent 2026 Star Citizen control reference provides a dependable binding:
+  - Target lock/unlock: `F8`
+  - Cycle hostiles: `5`
+  - Primary fire / missile launch input: `MOUSE1`
+  - Secondary fire / missile type input: `MOUSE2`
+  - Missile Operator Mode: `MOUSE3`
+  - Increase armed missiles: `G`
+  - Reset armed missiles: `LALT+G`
+  - Decoy: `H`
+  - Noise: `J`
+  - Power priority: `F5` / `F6` / `F7`
+  - Power reset: `F8`
+- **Quantum Travel hold command** for phrases such as `Jarvis, quantum jump` and `Jarvis, engage quantum`, with a configurable hold action.
+- **Auto-land hold command** as a separate configurable voice action.
+- Automatic retry logic around electron-builder packaging so transient GitHub/electron-builder binary CDN `EOF` download failures do not immediately kill a release build.
+
+### Fixed
+
+- Jarvis wake detection is substantially less likely to miss short utterances because recognition no longer stops and restarts every few seconds.
+- Voice output uses the selected application language consistently when spoken from both voice and typed assistant requests.
+- The app now exposes recognizer diagnostics through the preload/API bridge for UI troubleshooting.
+- Target/fire/quantum phrases are matched before broad legacy aliases so `fire`, `lock on`, and `quantum jump` resolve to the intended explicit actions.
+
+### Safety / scope
+
+- Combat controls remain **explicit one-shot user actions** or normal mode-selection shortcuts.
+- NekoVerse does **not** add 1–3 minute rapid-fire loops, automatic firing, autonomous target following, aim/recoil assistance, unattended combat, memory/process injection, packet manipulation, or anti-cheat bypass behavior.
+
+### Changed
+
+- App version bumped to **0.1.3**.
+- The assistant system prompt now documents that combat commands are limited to explicit single inputs and mode/target selection.
+
+### Build targets
+
+- Windows x64 NSIS installer
+- Windows x64 portable EXE
+- Linux AMD64 AppImage
+- Linux AMD64 DEB
+- SHA-256 release checksums
+
 ## 0.1.2 — Release Notes & Star Citizen UI Shortcuts
 
 ### Added
