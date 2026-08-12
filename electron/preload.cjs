@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('nekoVerse', {
   voiceStop: () => ipcRenderer.invoke('voice:stop'),
   hotkeyRun: (command) => ipcRenderer.invoke('hotkey:run', command),
   assistantAsk: (message) => ipcRenderer.invoke('assistant:ask', message),
+  listOllamaModels: (baseUrl) => ipcRenderer.invoke('ollama:models', baseUrl),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (settings) => ipcRenderer.invoke('settings:save', settings),
   openExternal: (url) => ipcRenderer.invoke('shell:open', url),
