@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('nekoVerse', {
   stopSpeaking: () => ipcRenderer.invoke('voice:stop-speaking'),
   voiceStart: () => ipcRenderer.invoke('voice:start'),
   voiceStop: () => ipcRenderer.invoke('voice:stop'),
+  voiceStatus: () => ipcRenderer.invoke('voice:status'),
   hotkeyRun: (command) => ipcRenderer.invoke('hotkey:run', command),
   assistantAsk: (message) => ipcRenderer.invoke('assistant:ask', message),
   listOllamaModels: (baseUrl) => ipcRenderer.invoke('ollama:models', baseUrl),
@@ -30,6 +31,11 @@ contextBridge.exposeInMainWorld('nekoVerse', {
     const listener = (_event, payload) => callback(payload);
     ipcRenderer.on('voice:wake', listener);
     return () => ipcRenderer.removeListener('voice:wake', listener);
+  },
+  onVoiceStatus: (callback) => {
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on('voice:status', listener);
+    return () => ipcRenderer.removeListener('voice:status', listener);
   },
   onUpdateAvailable: (callback) => {
     const listener = (_event, payload) => callback(payload);
