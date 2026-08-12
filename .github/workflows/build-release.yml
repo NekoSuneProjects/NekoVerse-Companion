@@ -38,12 +38,12 @@ jobs:
         shell: pwsh
         run: |
           $version = $env:GITHUB_REF_NAME -replace '^v', ''
-          npm version --no-git-tag-version $version
+          npm version --no-git-tag-version --allow-same-version $version
 
       - name: Stamp first release version
         if: github.ref == 'refs/heads/main' && github.event.head_commit.message == 'release-v0.1.0'
         shell: pwsh
-        run: npm version --no-git-tag-version 0.1.0
+        run: npm version --no-git-tag-version --allow-same-version 0.1.0
 
       - name: Install dependencies
         shell: pwsh
@@ -91,12 +91,12 @@ jobs:
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          npm version --no-git-tag-version "$VERSION"
+          npm version --no-git-tag-version --allow-same-version "$VERSION"
 
       - name: Stamp first release version
         if: github.ref == 'refs/heads/main' && github.event.head_commit.message == 'release-v0.1.0'
         shell: bash
-        run: npm version --no-git-tag-version 0.1.0
+        run: npm version --no-git-tag-version --allow-same-version 0.1.0
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
