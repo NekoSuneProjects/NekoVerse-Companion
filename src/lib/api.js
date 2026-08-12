@@ -16,8 +16,10 @@ export const api = {
   hotkeyRun: (command) => bridge?.hotkeyRun?.(command),
   assistantAsk: (message) => bridge?.assistantAsk?.(message),
   listOllamaModels: (baseUrl) => bridge?.listOllamaModels?.(baseUrl),
+  checkForUpdates: () => bridge?.checkForUpdates?.(),
   getSettings: () => bridge?.getSettings?.(),
   saveSettings: (settings) => bridge?.saveSettings?.(settings),
   openExternal: (url) => bridge?.openExternal?.(url),
-  onVoice: (fn) => bridge?.onVoice?.(fn)
+  onVoice: (fn) => bridge?.onVoice?.(fn),
+  onUpdateAvailable: (fn) => bridge?.onUpdateAvailable?.(fn)
 };
