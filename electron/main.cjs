@@ -9,6 +9,7 @@ const optimizer = require('./services/optimizer.cjs');
 const hotkeys = require('./services/hotkeys.cjs');
 const voice = require('./services/voice.cjs');
 const assistant = require('./services/assistant.cjs');
+const ollama = require('./services/ollama.cjs');
 
 let win;
 let settings = null;
@@ -20,7 +21,10 @@ const defaultSettings = {
   speakReplies: true,
   customInstallPath: '',
   commands: buildDefaultCommands(),
-  ai: { enabled: false, baseUrl: 'http://127.0.0.1:1234/v1', apiKey: '', model: '' }
+  ollama: {
+    baseUrl: ollama.DEFAULT_BASE_URL,
+    model: ollama.DEFAULT_MODEL
+  }
 };
 
 function settingsFile() { return path.join(app.getPath('userData'), 'settings.json'); }
@@ -31,11 +35,16 @@ function loadSettings() {
   for (const [id, defaults] of Object.entries(defaultSettings.commands)) {
     settings.commands[id] = { ...defaults, ...(settings.commands[id] || {}) };
   }
-  settings.ai = { ...defaultSettings.ai, ...(settings.ai || {}) };
+  settings.ollama = { ...defaultSettings.ollama, ...(settings.ollama || {}) };
   return settings;
 }
 function saveSettings(next) {
-  settings = { ...settings, ...next, commands:{...settings.commands,...(next.commands||{})}, ai:{...settings.ai,...(next.ai||{})} };
+  settings = {
+    ...settings,
+    ...next,
+    commands:{...settings.commands,...(next.commands||{})},
+    ollama:{...settings.ollama,...(next.ollama||{})}
+  };
   fs.mkdirSync(path.dirname(settingsFile()), {recursive:true});
   fs.writeFileSync(settingsFile(), JSON.stringify(settings,null,2));
   return settings;
@@ -96,6 +105,7 @@ ipcMain.handle('assistant:ask', async (_e,msg) => {
   if (settings.speakReplies) voice.speak(actionResult?.error ? `${reply.text} ${actionResult.error}` : reply.text);
   return { reply, actionResult };
 });
+ipcMain.handle('ollama:models', (_e,baseUrl) => ollama.listModels(baseUrl || settings.ollama?.baseUrl));
 ipcMain.handle('settings:get', () => settings);
 ipcMain.handle('settings:save', (_e,next) => saveSettings(next));
 ipcMain.handle('shell:open', async (_e,url) => { if (/^https?:\/\//i.test(url)) { await shell.openExternal(url); return true; } return false; });
