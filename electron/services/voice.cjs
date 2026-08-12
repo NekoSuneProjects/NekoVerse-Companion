@@ -84,14 +84,15 @@ $rec.LoadGrammar((New-Object System.Speech.Recognition.DictationGrammar));
 $lastLevelTick=0L;
 $rec.add_SpeechHypothesized({ param($sender,$e)
   if($e.Result -and $e.Result.Text){
-    [Console]::WriteLine('NVHYP:'+$e.Result.Text.Replace("`r",' ').Replace("`n",' '));
+    $hyp=$e.Result.Text.Replace([char]13,' ').Replace([char]10,' ');
+    [Console]::WriteLine('NVHYP:'+$hyp);
     [Console]::Out.Flush();
   }
 });
 $rec.add_SpeechRecognized({ param($sender,$e)
   if($e.Result -and $e.Result.Text){
     $confidence=[Math]::Round([double]$e.Result.Confidence,3);
-    $text=$e.Result.Text.Replace("`r",' ').Replace("`n",' ');
+    $text=$e.Result.Text.Replace([char]13,' ').Replace([char]10,' ');
     [Console]::WriteLine('NVVOICE:'+$confidence+':'+$text);
     [Console]::Out.Flush();
   }
