@@ -1,8 +1,16 @@
 const { ps } = require('./system.cjs');
 
 const KEY = {
-  CTRL: 0x11, ALT: 0x12, SHIFT: 0x10, ENTER: 0x0D, ESC: 0x1B, TAB: 0x09, SPACE: 0x20,
-  F1:0x70,F2:0x71,F3:0x72,F4:0x73,F5:0x74,F6:0x75,F7:0x76,F8:0x77,F9:0x78,F10:0x79,F11:0x7A,F12:0x7B
+  CTRL:0x11, CONTROL:0x11, ALT:0x12, SHIFT:0x10,
+  LCTRL:0xA2, RCTRL:0xA3, LALT:0xA4, RALT:0xA5, LSHIFT:0xA0, RSHIFT:0xA1,
+  WIN:0x5B, LWIN:0x5B, RWIN:0x5C,
+  ENTER:0x0D, RETURN:0x0D, ESC:0x1B, ESCAPE:0x1B, TAB:0x09, SPACE:0x20,
+  BACKSPACE:0x08, DELETE:0x2E, INSERT:0x2D, HOME:0x24, END:0x23,
+  PAGEUP:0x21, PAGEDOWN:0x22, LEFT:0x25, UP:0x26, RIGHT:0x27, DOWN:0x28,
+  CAPSLOCK:0x14, NUMLOCK:0x90, SCROLLLOCK:0x91,
+  F1:0x70,F2:0x71,F3:0x72,F4:0x73,F5:0x74,F6:0x75,F7:0x76,F8:0x77,F9:0x78,F10:0x79,F11:0x7A,F12:0x7B,
+  NUM0:0x60,NUM1:0x61,NUM2:0x62,NUM3:0x63,NUM4:0x64,NUM5:0x65,NUM6:0x66,NUM7:0x67,NUM8:0x68,NUM9:0x69,
+  MULTIPLY:0x6A, ADD:0x6B, SUBTRACT:0x6D, DECIMAL:0x6E, DIVIDE:0x6F
 };
 for (let i=0;i<=9;i++) KEY[String(i)] = 0x30+i;
 for (let i=0;i<26;i++) KEY[String.fromCharCode(65+i)] = 0x41+i;
@@ -11,23 +19,31 @@ function parseCombo(combo='') {
   return combo.split('+').map(x => x.trim().toUpperCase()).filter(Boolean).map(k => KEY[k]).filter(Number.isFinite);
 }
 
-async function sendCombo(combo) {
+async function sendCombo(combo, options = {}) {
   if (process.platform !== 'win32') return { ok: false, error: 'Hotkey output is Windows-only.' };
   const keys = parseCombo(combo);
   if (!keys.length) return { ok: false, error: `No valid keys in “${combo}”. Configure the command in Settings.` };
+
+  const holdMs = Math.max(35, Math.min(10000, Number(options.holdMs || 45)));
   const arr = keys.join(',');
   const script = `
 $src=@'\nusing System; using System.Runtime.InteropServices; public static class NVK { [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo); }\n'@;
 Add-Type $src -ErrorAction SilentlyContinue;
-$keys=@(${arr}); foreach($k in $keys){[NVK]::keybd_event([byte]$k,0,0,[UIntPtr]::Zero)}; Start-Sleep -Milliseconds 45; [array]::Reverse($keys); foreach($k in $keys){[NVK]::keybd_event([byte]$k,0,2,[UIntPtr]::Zero)}
+$keys=@(${arr});
+foreach($k in $keys){[NVK]::keybd_event([byte]$k,0,0,[UIntPtr]::Zero)};
+Start-Sleep -Milliseconds ${holdMs};
+[array]::Reverse($keys);
+foreach($k in $keys){[NVK]::keybd_event([byte]$k,0,2,[UIntPtr]::Zero)}
 `;
-  try { await ps(script); return { ok: true, combo }; } catch (e) { return { ok: false, error: e.message }; }
+  try { await ps(script); return { ok: true, combo, holdMs }; } catch (e) { return { ok: false, error: e.message }; }
 }
 
 async function runCommand(command, settings) {
-  const combo = settings?.commands?.[command]?.combo;
+  const entry = settings?.commands?.[command];
+  const combo = entry?.combo;
   if (!combo) return { ok: false, error: `“${command}” has no hotkey assigned yet.` };
-  return sendCombo(combo);
+  const holdMs = entry?.mode === 'hold' ? (entry.holdMs || 700) : (entry.holdMs || 45);
+  return sendCombo(combo, { holdMs });
 }
 
 module.exports = { sendCombo, runCommand, parseCombo };
