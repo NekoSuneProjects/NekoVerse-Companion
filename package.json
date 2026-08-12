@@ -15,7 +15,7 @@
     "dist:win:x64": "npm run build && electron-builder --win nsis portable --x64",
     "dist:linux:x64": "npm run build && electron-builder --linux AppImage deb --x64",
     "dist:dir": "npm run build && electron-builder --win --x64 --dir",
-    "check": "node --check electron/main.cjs && node --check electron/preload.cjs && node --check electron/services/system.cjs && node --check electron/services/starcitizen.cjs && node --check electron/services/fleetyards.cjs && node --check electron/services/marketplace.cjs && node --check electron/services/optimizer.cjs && node --check electron/services/hotkeys.cjs && node --check electron/services/voice.cjs && node --check electron/services/assistant.cjs"
+    "check": "node --check electron/main.cjs && node --check electron/preload.cjs && node --check electron/services/commands.cjs && node --check electron/services/system.cjs && node --check electron/services/starcitizen.cjs && node --check electron/services/fleetyards.cjs && node --check electron/services/marketplace.cjs && node --check electron/services/optimizer.cjs && node --check electron/services/hotkeys.cjs && node --check electron/services/voice.cjs && node --check electron/services/assistant.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
