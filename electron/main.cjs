@@ -15,9 +15,12 @@ let win;
 let settings = null;
 let lastOptimizer = null;
 
+const LEGACY_WAKE_WORDS = ['neko', 'nekoverse', 'computer'];
 const defaultSettings = {
-  wakeWords: ['neko', 'nekoverse', 'computer'],
-  requireWakeWord: true,
+  // Direct microphone commands are the default. Users can optionally turn
+  // wake-word mode back on and choose their own easier-to-pronounce word.
+  wakeWords: [],
+  requireWakeWord: false,
   speakReplies: true,
   customInstallPath: '',
   commands: buildDefaultCommands(),
@@ -28,14 +31,36 @@ const defaultSettings = {
 };
 
 function settingsFile() { return path.join(app.getPath('userData'), 'settings.json'); }
+function sameWords(a = [], b = []) {
+  return a.length === b.length && a.every((word, i) => String(word).toLowerCase() === String(b[i]).toLowerCase());
+}
 function loadSettings() {
-  try { settings = { ...defaultSettings, ...JSON.parse(fs.readFileSync(settingsFile(),'utf8')) }; }
-  catch { settings = structuredClone(defaultSettings); }
+  let loaded = null;
+  try { loaded = JSON.parse(fs.readFileSync(settingsFile(),'utf8')); }
+  catch { loaded = null; }
+
+  settings = loaded ? { ...defaultSettings, ...loaded } : structuredClone(defaultSettings);
+
+  // Migrate the old shipped default so existing installs no longer require
+  // users to pronounce “Neko”. Custom wake-word setups are left untouched.
+  if (loaded?.requireWakeWord === true && sameWords(loaded?.wakeWords || [], LEGACY_WAKE_WORDS)) {
+    settings.requireWakeWord = false;
+    settings.wakeWords = [];
+  }
+
   settings.commands = { ...defaultSettings.commands, ...(settings.commands || {}) };
   for (const [id, defaults] of Object.entries(defaultSettings.commands)) {
     settings.commands[id] = { ...defaults, ...(settings.commands[id] || {}) };
   }
   settings.ollama = { ...defaultSettings.ollama, ...(settings.ollama || {}) };
+
+  if (loaded?.requireWakeWord === true && sameWords(loaded?.wakeWords || [], LEGACY_WAKE_WORDS)) {
+    try {
+      fs.mkdirSync(path.dirname(settingsFile()), {recursive:true});
+      fs.writeFileSync(settingsFile(), JSON.stringify(settings,null,2));
+    } catch {}
+  }
+
   return settings;
 }
 function saveSettings(next) {
@@ -63,15 +88,23 @@ function createWindow() {
 
 async function runRecognized(text) {
   if (!win || win.isDestroyed()) return;
+
   const lower = text.toLowerCase();
   const wake = (settings.wakeWords || []).find(w => lower.includes(String(w).toLowerCase()));
   if (settings.requireWakeWord && !wake) return;
+
   const escapedWake = wake ? String(wake).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
-  const cleaned = wake ? text.replace(new RegExp(escapedWake,'i'),'').trim() : text;
-  const reply = await assistant.ask(cleaned || text, settings, { optimizer:lastOptimizer?.recommended });
+  const cleaned = wake ? text.replace(new RegExp(escapedWake,'i'),'').trim() : text.trim();
+  const commandText = cleaned || text;
+
+  // In direct-microphone mode, ignore ordinary background conversation.
+  // Only known command/special intents are processed without a wake word.
+  if (!settings.requireWakeWord && assistant.detectIntent(commandText) === 'chat') return;
+
+  const reply = await assistant.ask(commandText, settings, { optimizer:lastOptimizer?.recommended });
   let actionResult = null;
   if (reply.intent && settings.commands?.[reply.intent]) actionResult = await hotkeys.runCommand(reply.intent, settings);
-  const payload = { recognized:text, command:cleaned, reply, actionResult };
+  const payload = { recognized:text, command:commandText, reply, actionResult };
   win.webContents.send('voice:recognized', payload);
   if (settings.speakReplies) voice.speak(actionResult?.error ? `${reply.text} ${actionResult.error}` : reply.text);
 }
