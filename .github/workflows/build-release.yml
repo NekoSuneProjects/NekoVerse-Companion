@@ -101,7 +101,7 @@ jobs:
 
   linux-x64:
     name: Linux AMD64
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, docker, buildx]
     timeout-minutes: 45
 
     steps:
@@ -184,7 +184,7 @@ jobs:
     needs:
       - windows-x64
       - linux-x64
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, docker, buildx]
     permissions:
       contents: write
 
