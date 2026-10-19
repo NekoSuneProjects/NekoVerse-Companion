@@ -97,7 +97,7 @@ jobs:
           path: |
             release/*.exe
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 1
 
   linux-x64:
     name: Linux AMD64
