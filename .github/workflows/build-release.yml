@@ -176,7 +176,7 @@ jobs:
             release/*.AppImage
             release/*.deb
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 1
 
   release:
     name: Publish GitHub Release
